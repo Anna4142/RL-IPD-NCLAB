@@ -2,11 +2,11 @@ import numpy as np
 from envs.one_d_world.game import CustomEnv
 
 class NashQAgent:
-    def __init__(self,env,num_states, num_actions, learning_rate=0.1, discount_factor=0.95, exploration_rate=1.0,
+    def __init__(self,env, learning_rate=0.1, discount_factor=0.95, exploration_rate=1.0,
                  exploration_decay=0.99, min_exploration_rate=0.01):
         self.env=env
-        self.num_states = num_states
-        self.num_actions = num_actions
+        self.num_states = env.state_size
+        self.num_actions = env.action_size
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
@@ -14,10 +14,10 @@ class NashQAgent:
         self.min_exploration_rate = min_exploration_rate
 
         # Initialize Q-tables for each agent
-        self.q_table1 = np.zeros((num_states, num_actions, num_actions))  # Agent 1's Q-table
-        self.q_table2 = np.zeros((num_states, num_actions, num_actions))  # Agent 2's Q-table
+        self.q_table1 = np.zeros((self.num_states, self.num_actions, self.num_actions))  # Agent 1's Q-table
+        self.q_table2 = np.zeros((self.num_states, self.num_actions, self.num_actions))  # Agent 2's Q-table
 
-    def decide_actions(self, state):
+    def decide_action(self, state):
         if np.random.rand() < self.exploration_rate:
             # Explore: select random actions for both agents
             action1 = np.random.randint(self.num_actions)

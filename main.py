@@ -28,7 +28,7 @@ for _ in range(env.rounds):
     #current_state=(env.player2_action,env.player1_action)
 
     if algorithm_type == "MULTI AGENT":
-        action1, action2 = jal_agent.decide_action(current_state)
+        action1, action2 = agent.decide_action(current_state)
     elif algorithm_type == "SINGLE AGENT":
        action1 = agent1.decide_action(env.player2_action)
        action2 = agent2.decide_action(env.player1_action)
