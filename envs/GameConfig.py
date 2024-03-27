@@ -7,7 +7,7 @@ class GameConfig:
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
-                "algorithm_type": "decentralized"  # Example default value
+                "algorithm_type": "MULTI AGENT"  # Example default value
             },
             "stag_hunt": {
                 "rounds": 10,
@@ -15,7 +15,7 @@ class GameConfig:
                     [(R, R), (S, P)],
                     [(P, S), (T, T)]
                 ],
-                "algorithm_type": "decentralized"  # Example default value
+                "algorithm_type": "SINGLE AGENT"  # Example default value
             },
             "chicken_game": {
                 "rounds": 10,
@@ -23,7 +23,7 @@ class GameConfig:
                     [(T, S), (P, P)],
                     [(S, T), (R, R)]
                 ],
-                "algorithm_type": "decentralized"  # Example default value
+                "algorithm_type": "SINGLE AGENT"  # Example default value
             }
             # Add more games as needed
         }

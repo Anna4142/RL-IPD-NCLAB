@@ -1,6 +1,6 @@
 from envs.one_d_world.game import CustomEnv
 from agents.LearningAgents.Algorithms.SingleAgentVanilla import SARSA, TD0
-from agents.LearningAgents.Algorithms.MultiAgentVanila import JointActionLearning
+from agents.LearningAgents.Algorithms.MultiAgentVanila import JointActionLearning,NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
 env = CustomEnv("prisoners_dilemma")
@@ -8,11 +8,11 @@ algorithm_type = env.algorithm_type
 
 # Initialize agents based on the algorithm type
 # Initialize the agents
-if algorithm_type == "centralized":
+if algorithm_type == "MULTI AGENT":
     # Initialize a centralized agent
 
-    jal_agent = JointActionLearning.JALAgent(env)
-elif algorithm_type == "decentralized":
+    agent = NASHQ.NashQAgent(env)
+elif algorithm_type == "SINGLE AGENT":
     agent1 = TD0.TDLearningAgent(env)
     agent2 = SARSA.SARSAgent(env)
 
@@ -27,9 +27,9 @@ for _ in range(env.rounds):
 
     #current_state=(env.player2_action,env.player1_action)
 
-    if algorithm_type == "centralized":
+    if algorithm_type == "MULTI AGENT":
         action1, action2 = jal_agent.decide_action(current_state)
-    elif algorithm_type == "decentralized":
+    elif algorithm_type == "SINGLE AGENT":
        action1 = agent1.decide_action(env.player2_action)
        action2 = agent2.decide_action(env.player1_action)
     # Environment steps forward based on the selected actions
