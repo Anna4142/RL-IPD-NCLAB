@@ -1,8 +1,12 @@
 from envs.one_d_world.game import CustomEnv
-from agents.LearningAgents.Algorithms.SingleAgentVanilla import SARSA, TD0
-from agents.LearningAgents.Algorithms.MultiAgentVanila import JointActionLearning,NASHQ
+from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, Probability25Cooperator,Probability50Cooperator,Probability75Cooperator, TitForTat, SuspiciousTitForTat, GenerousTitForTat, Pavlov, GRIM
+
+from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaValueBased import SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
+
+from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
+from ExperimentManager import ExperimentManager
 env = CustomEnv("prisoners_dilemma")
 algorithm_type = env.algorithm_type
 
@@ -12,11 +16,17 @@ if algorithm_type == "MULTI AGENT":
     # Initialize a centralized agent
 
     agent = NASHQ.NashQAgent(env)
+    agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
-    agent1 = TD0.TDLearningAgent(env)
-    agent2 = SARSA.SARSAgent(env)
-
-
+    agent1 = UnconditionalCooperator(env)
+    agent2 = SARSAgent(env)
+    agent_names = f"{agent1.__class__.__name__}_{agent2.__class__.__name__}"
+# Assuming 'agent_names' is set from the above logic
+experiment_id = f"experiment_{agent_names}"
+experiment_manager = ExperimentManager()
+experiment_number = experiment_manager.get_next_experiment_number(experiment_id)
+experiment_number = f"experiment_{experiment_number}"
+print("experiment number",experiment_number)
 data_buffer = DataBuffer()
 # Initialize the MetricsVisualizer with the data buffer
 visualizer = MetricsVisualizer(data_buffer)
@@ -47,7 +57,7 @@ for _ in range(env.rounds):
 
         break
 # Call the function to run the entire process
-visualizer .plot_all()
+visualizer .save_all_results_and_plots( experiment_id,experiment_number)
 
 
 

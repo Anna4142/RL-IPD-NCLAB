@@ -3,14 +3,18 @@ import matplotlib.pyplot as plt
 
 # visualization.py
 import matplotlib.pyplot as plt
-from Evaluation.Metrics import CumulativeRewardMetric, AverageRewardMetric, CooperationRateMetric
 
+from Evaluation.Metrics import CumulativeRewardMetric, AverageRewardMetric, CooperationRateMetric, ChoicePercentageMetric
+
+import os
 class MetricsVisualizer:
     def __init__(self,databuffer):
+
         self.data_buffer = databuffer
         self.cumulative_reward_metric = CumulativeRewardMetric(self.data_buffer)
         self.average_reward_metric = AverageRewardMetric(self.data_buffer,window_size=100)
         self.cooperation_rate_metric = CooperationRateMetric(self.data_buffer)
+        self.choice_percentage_metric=ChoicePercentageMetric(self.data_buffer)
 
     def update_metrics(self, reward1,reward2, action1,action2):
 
@@ -22,40 +26,21 @@ class MetricsVisualizer:
         self.cumulative_reward_metric.update(reward1,reward2)
         self.average_reward_metric.update(reward1,reward2)
         self.cooperation_rate_metric.update(action1,action2)
+        self.choice_percentage_metric.update(action1, action2)
 
-    def plot_cumulative_rewards(self):
-        cumulative_rewards = self.cumulative_reward_metric.get_metrics()
-        print("cumreward",cumulative_rewards)
-        """""
-        plt.figure(figsize=(12, 6))
-        plt.plot(cumulative_rewards, label='Cumulative Reward')
-        plt.title('Cumulative Reward per Episode')
-        plt.xlabel('Episode')
-        plt.ylabel('Cumulative Reward')
-        plt.legend()
-        plt.show()
-        """
-
-    def plot_average_rewards(self):
-        average_rewards = self.average_reward_metric.get_metrics()
-        print("avg reward",average_rewards)
-        """""
-        plt.figure(figsize=(12, 6))
-        plt.plot(average_rewards, label='Average Reward')
-        plt.title('Average Reward over Last 100 Episodes')
-        plt.xlabel('Episode')
-        plt.ylabel('Average Reward')
-        plt.legend()
-        plt.show()
-        """
 
     def print_cooperation_rate(self):
         cooperation_rate = self.cooperation_rate_metric.get_metrics()
         print(f"Overall Cooperation Rate: {cooperation_rate}")
-    def plot_all(self):
-        # Call the individual plotting functions
-        self.plot_cumulative_rewards()
-        self.plot_average_rewards()
-        # And print the cooperation rate
-        self.print_cooperation_rate()
+
+    def save_all_results_and_plots(self, experiment_id,experiment_number):
+
+        self.cumulative_reward_metric.save_results(experiment_id, "cumulative_rewards.json", experiment_number)
+        self.average_reward_metric.save_results(experiment_id, "average_rewards.json", experiment_number)
+        self.cooperation_rate_metric.save_results(experiment_id, "cooperation_rate.json", experiment_number)
+        self.choice_percentage_metric.save_results(experiment_id,
+                                                   "Results/ChoicePercentages.csv")
+
+
+
 

@@ -6,6 +6,7 @@ import numpy as np
 from itertools import count
 
 # Placeholder imports - Replace these with your actual implementations
+Transition = namedtuple('Transition', ('state', 'action1', 'action2', 'next_state', 'reward1', 'reward2'))
 from envs.one_d_world.game import CustomEnv  # Your custom environment
 #from model import PolicyNet  # Your policy network model
 
