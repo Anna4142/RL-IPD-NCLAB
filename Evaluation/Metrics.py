@@ -25,6 +25,8 @@ class CumulativeRewardMetric(BaseMetric):
         """Reset the cumulative rewards list."""
         self.cumulative_rewards = []
 
+    def save_results(self, experiment_id, expnum,filename="cumulative_rewards.json"):
+        super().save_results(experiment_id, expnum,filename)
 
 class AverageRewardMetric(BaseMetric):
     def __init__(self, data_buffer, window_size=1):
@@ -50,25 +52,30 @@ class AverageRewardMetric(BaseMetric):
         self.all_rewards = []
         self.average_rewards = []
 
-
+    def save_results(self, experiment_id, expnum,filename="average_rewards.json"):
+        super().save_results(experiment_id, expnum,filename)
 class CooperationRateMetric(BaseMetric):
     def __init__(self, data_buffer):
         super().__init__(data_buffer)  # Pass data_buffer to BaseMetric
         self.reset()
 
     def update(self, action1, action2):
-        # Increment total_actions and cooperation_count based on the actions
         self.total_actions += 1
-
         if action1 == 0 and action2 == 0:
             self.cooperation_count += 1
+
+        # Calculate current cooperation percentage and record it with trial number
+        current_percentage = (self.cooperation_count / self.total_actions) * 100
+        self.cooperation_percentages.append(current_percentage)
 
     def get_metrics(self):
         if self.total_actions == 0:
             return 0
-        # Calculate the percentage of cooperation
-        return (self.cooperation_count / self.total_actions) * 100
+        return self.cooperation_percentages
 
     def reset(self):
         self.cooperation_count = 0
         self.total_actions = 0
+        self.cooperation_percentages = []  # Store tuples of (trial_number, cooperation_percentage)
+    def save_results(self, experiment_id, expnum,filename="cooperation_rate.json"):
+        super().save_results(experiment_id, expnum,filename)

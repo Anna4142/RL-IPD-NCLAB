@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class BaseAgent(ABC):
-    def __init__(self, history_length):
-        self.history = [(-1, -1) for _ in range(history_length)]
+    def __init__(self,env):
+        self.history = [(-1, -1) for _ in range(env.history_length)]
 
     @abstractmethod
     def decide_action(self, opponent_last_action):
