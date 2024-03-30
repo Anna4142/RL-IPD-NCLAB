@@ -7,7 +7,7 @@ class GameConfig:
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
-                "algorithm_type": "MULTI AGENT"  # Example default value
+                "algorithm_type": "SINGLE AGENT"  # Example default value
             },
             "stag_hunt": {
                 "rounds": 10,
