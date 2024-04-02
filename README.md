@@ -12,6 +12,7 @@ The project is organized into several key components:
 - **Evaluation**: Scripts and tools for evaluating the performance and strategy effectiveness of RL agents.
 - **Agents**: The directory hosts various RL agent implementations that compete or cooperate in the IPD.
 - **Envs**: Custom environments for the Iterated Prisoner's Dilemma, tailored for reinforcement learning experiments.
+- **Results**-Currently contains percentage of each choice after running 200 episode experiments of all fixed agents againts all vanilla value based agents
 - **main.py**: The main script to kick off training sessions or experiments.
 - **run.py**: A utility script for executing specific models or tests within the project framework.
 
