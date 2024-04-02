@@ -1,24 +1,29 @@
 from Evaluation.BaseMetric import BaseMetric
+import csv
+import csv
+from os.path import exists
 
 
 class CumulativeRewardMetric(BaseMetric):
     def __init__(self, data_buffer):
         super().__init__(data_buffer)
-        self.reset()  # Initialize cumulative_rewards as a list of tuples
-
-
+        self.reset()  # Initialize cumulative_rewards as an empty list
 
     def update(self, reward1=None, reward2=None):
-        # Directly use the rewards passed to it for updating
         # Check if rewards are not None for safety
         if reward1 is not None and reward2 is not None:
-            latest_reward = reward1+reward2 # Use the passed-in rewards as a tuple
+            # Calculate the new reward to be added
+            latest_reward = reward1 + reward2
 
-            self.cumulative_rewards.append(latest_reward)
-
+            # If the list is empty, add the latest_reward directly
+            if not self.cumulative_rewards:
+                self.cumulative_rewards.append(latest_reward)
+            else:
+                # Otherwise, add the latest_reward to the last cumulative reward in the list
+                self.cumulative_rewards.append(self.cumulative_rewards[-1] + latest_reward)
 
     def get_metrics(self):
-        """Retrieve the cumulative rewards for all episodes."""
+        """Retrieve the list of cumulative rewards."""
         return self.cumulative_rewards
 
     def reset(self):
@@ -78,4 +83,42 @@ class CooperationRateMetric(BaseMetric):
         self.total_actions = 0
         self.cooperation_percentages = []  # Store tuples of (trial_number, cooperation_percentage)
     def save_results(self, experiment_id, expnum,filename="cooperation_rate.json"):
+
+
         super().save_results(experiment_id, expnum,filename)
+class ChoicePercentageMetric(BaseMetric):
+    def __init__(self, data_buffer):
+        super().__init__(data_buffer)
+        self.reset()
+
+    def update(self, action1, action2):
+        # Update counts based on actions
+        key = (action1, action2)
+        self.action_counts[key] = self.action_counts.get(key, 0) + 1
+
+    def get_metrics(self):
+        # Calculate the percentage of each choice
+        total_actions = sum(self.action_counts.values())
+        if total_actions == 0:
+            return {k: 0 for k in self.action_counts.keys()}
+        return {k: (v / total_actions) * 100 for k, v in self.action_counts.items()}
+
+    def reset(self):
+        self.action_counts = {}
+
+    def save_results(self, experiment_id,   filename):
+        metrics = self.get_metrics()
+        # Prepare row data
+        row_data = [experiment_id] + [metrics.get((i, j), 0) for i in range(2) for j in range(2)]
+
+        file_exists = exists(filename)
+        with open(filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            if not file_exists:
+                # Write headers if file does not exist
+                headers = ['ExperimentID',   'CC', 'CD', 'DC', 'DD']
+                writer.writerow(headers)
+            writer.writerow(row_data)
+
+        super().save_results(experiment_id, expnum,filename)
+

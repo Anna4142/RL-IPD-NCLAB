@@ -17,13 +17,28 @@ class RandomAgent(BaseAgent):
     def decide_action(self, opponent_last_action):
         return random.choice([COOPERATE, DEFECT])
 
-class ProbabilityPCooperator(BaseAgent):
-    def __init__(self, history_length, p):
+class Probability25Cooperator(BaseAgent):
+    def __init__(self, history_length):
         super().__init__(history_length)
-        self.p = p
+        self.p = 0.25
 
     def decide_action(self, opponent_last_action):
         return COOPERATE if random.random() < self.p else DEFECT
+class Probability75Cooperator(BaseAgent):
+    def __init__(self, history_length):
+        super().__init__(history_length)
+        self.p = 0.75
+
+    def decide_action(self, opponent_last_action):
+        return COOPERATE if random.random() < self.p else DEFECT
+class Probability50Cooperator(BaseAgent):
+    def __init__(self, history_length):
+        super().__init__(history_length)
+        self.p = 0.50
+
+    def decide_action(self, opponent_last_action):
+        return COOPERATE if random.random() < self.p else DEFECT
+
 
 class TitForTat(BaseAgent):
     def decide_action(self, opponent_last_action):

@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 
 # visualization.py
 import matplotlib.pyplot as plt
-from Evaluation.Metrics import CumulativeRewardMetric, AverageRewardMetric, CooperationRateMetric
+
+
+from Evaluation.Metrics import CumulativeRewardMetric, AverageRewardMetric, CooperationRateMetric, ChoicePercentageMetric
+
+
 import os
 class MetricsVisualizer:
     def __init__(self,databuffer):
@@ -12,6 +16,7 @@ class MetricsVisualizer:
         self.cumulative_reward_metric = CumulativeRewardMetric(self.data_buffer)
         self.average_reward_metric = AverageRewardMetric(self.data_buffer,window_size=100)
         self.cooperation_rate_metric = CooperationRateMetric(self.data_buffer)
+        self.choice_percentage_metric=ChoicePercentageMetric(self.data_buffer)
 
     def update_metrics(self, reward1,reward2, action1,action2):
 
@@ -23,6 +28,7 @@ class MetricsVisualizer:
         self.cumulative_reward_metric.update(reward1,reward2)
         self.average_reward_metric.update(reward1,reward2)
         self.cooperation_rate_metric.update(action1,action2)
+        self.choice_percentage_metric.update(action1, action2)
 
 
     def print_cooperation_rate(self):
@@ -34,6 +40,9 @@ class MetricsVisualizer:
         self.cumulative_reward_metric.save_results(experiment_id, "cumulative_rewards.json", experiment_number)
         self.average_reward_metric.save_results(experiment_id, "average_rewards.json", experiment_number)
         self.cooperation_rate_metric.save_results(experiment_id, "cooperation_rate.json", experiment_number)
+
+        self.choice_percentage_metric.save_results(experiment_id,
+                                                   "Results/ChoicePercentages.csv")
 
 
 

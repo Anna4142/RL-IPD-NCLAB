@@ -1,8 +1,11 @@
 from envs.one_d_world.game import CustomEnv
-from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, ProbabilityPCooperator, TitForTat, SuspiciousTitForTat, GenerousTitForTat, Pavlov, GRIM
+
+from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, Probability25Cooperator,Probability50Cooperator,Probability75Cooperator, TitForTat, SuspiciousTitForTat, GenerousTitForTat, Pavlov, GRIM
+
+from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaValueBased import SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
 
 
-from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla import TD0, SARSA,VanillaQLearning,TDGAMMA
+
 from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
@@ -19,7 +22,9 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
     agent1 = UnconditionalCooperator(env)
-    agent2 = SARSA.SARSAgent(env)
+
+    agent2 = SARSAgent(env)
+
     agent_names = f"{agent1.__class__.__name__}_{agent2.__class__.__name__}"
 # Assuming 'agent_names' is set from the above logic
 experiment_id = f"experiment_{agent_names}"
