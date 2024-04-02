@@ -29,6 +29,7 @@ class CumulativeRewardMetric(BaseMetric):
     def reset(self):
         """Reset the cumulative rewards list."""
         self.cumulative_rewards = []
+
     def save_results(self, experiment_id, expnum,filename="cumulative_rewards.json"):
         super().save_results(experiment_id, expnum,filename)
 
@@ -83,6 +84,7 @@ class CooperationRateMetric(BaseMetric):
         self.cooperation_percentages = []  # Store tuples of (trial_number, cooperation_percentage)
     def save_results(self, experiment_id, expnum,filename="cooperation_rate.json"):
 
+
         super().save_results(experiment_id, expnum,filename)
 class ChoicePercentageMetric(BaseMetric):
     def __init__(self, data_buffer):
@@ -117,3 +119,6 @@ class ChoicePercentageMetric(BaseMetric):
                 headers = ['ExperimentID',   'CC', 'CD', 'DC', 'DD']
                 writer.writerow(headers)
             writer.writerow(row_data)
+
+        super().save_results(experiment_id, expnum,filename)
+
