@@ -18,10 +18,51 @@ The project is organized into several key components:
 
 ## Getting Started
 
+
 ### :warning: Work in Progress :warning:
 
 This project is currently under development. The instructions below are preliminary and subject to change.
+### The IPD env
 
+The Iterated Prisoner's Dilemma (IPD) game's dynamics can be understood through its payoff matrix. The matrix represents the outcomes for Player 1 (rows) and Player 2 (columns) based on their decisions to either Cooperate (C) or Defect (D).
+
+![1D Environment](images_rl/one_d_game.png)
+
+Explanation of the Payoff Matrix:
+
+C-C (Top-Left Cell): Both players choose to cooperate, typically resulting in a reward for mutual cooperation (R,R).
+
+C-D (Top-Right Cell): Player 1 cooperates while Player 2 defects, often leading to the sucker's payoff for Player 1 and the temptation payoff for Player 2 (S,T).
+
+D-C (Bottom-Left Cell): Player 1 defects while Player 2 cooperates, resulting in a temptation payoff for Player 1 and the sucker's payoff for Player 2 (T,S).
+
+D-D (Bottom-Right Cell): Both players choose to defect, usually resulting in a punishment for mutual defection, which is better than the sucker's payoff but worse than mutual cooperation (P,P).
+
+The `GameConfig` class plays a crucial role in setting up the parameters for different game simulations within the RL-IPD-NCLAB project. This flexible configuration allows for easy adjustments and additions of game settings, enabling the exploration of various game theories and reinforcement learning strategies under different conditions.
+
+
+
+### Example Usage:
+
+```python
+# Initialize game configurations with specific game payoff values
+game_config = GameConfig(T=5, S=0, P=1, R=3)
+
+# Adding a new game configuration
+game_config.add_game(
+    game_name="new_game",
+    rounds=15,
+    payout_matrix=[[(3, 3), (0, 5)], [(5, 0), (1, 1)]],
+    algorithm_type="MULTI AGENT"
+)
+
+# Accessing a game's configuration
+prisoners_dilemma_config = game_config.games["prisoners_dilemma"]
+print(f"Rounds: {prisoners_dilemma_config['rounds']}")
+print(f"Payout Matrix: {prisoners_dilemma_config['payout_matrix']}")
+print(f"Algorithm Type: {prisoners_dilemma_config['algorithm_type']}")
+
+```
 ### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
