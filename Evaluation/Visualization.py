@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 # visualization.py
 import matplotlib.pyplot as plt
 
+
 from Evaluation.Metrics import CumulativeRewardMetric, AverageRewardMetric, CooperationRateMetric, ChoicePercentageMetric
+
 
 import os
 class MetricsVisualizer:
@@ -38,6 +40,7 @@ class MetricsVisualizer:
         self.cumulative_reward_metric.save_results(experiment_id, "cumulative_rewards.json", experiment_number)
         self.average_reward_metric.save_results(experiment_id, "average_rewards.json", experiment_number)
         self.cooperation_rate_metric.save_results(experiment_id, "cooperation_rate.json", experiment_number)
+
         self.choice_percentage_metric.save_results(experiment_id,
                                                    "Results/ChoicePercentagesLearningAgainstLearning.csv")
 
