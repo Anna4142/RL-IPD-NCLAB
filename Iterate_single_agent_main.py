@@ -24,7 +24,7 @@ for FixedAgent in fixed_agents:
     for VanillaAgent in vanilla_agents:
         # Initialize environment and agents
         env = CustomEnv("prisoners_dilemma")
-        agent1 = FixedAgent(env)
+        agent1 = VanillaAgent(env)
         agent2 = VanillaAgent(env)
 
         agent_names = f"{agent1.__class__.__name__}_{agent2.__class__.__name__}"
