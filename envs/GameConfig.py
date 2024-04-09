@@ -7,7 +7,10 @@ class GameConfig:
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
-                "algorithm_type": "SINGLE AGENT"  # Example default value
+                "algorithm_type": "SINGLE AGENT",
+                "memory": 5,  # Number of past rounds to remember
+                "history_length": 5,  # Number of past actions to keep in history
+                "obs_type": "both"  # Type of observation data to include-can be self other or both
             },
             "stag_hunt": {
                 "rounds": 10,
@@ -15,7 +18,10 @@ class GameConfig:
                     [(R, R), (S, P)],
                     [(P, S), (T, T)]
                 ],
-                "algorithm_type": "SINGLE AGENT"  # Example default value
+                "algorithm_type": "SINGLE AGENT",
+                "memory": 3,
+                "history_length": 3,
+                "obs_type": "self"
             },
             "chicken_game": {
                 "rounds": 10,
@@ -23,17 +29,23 @@ class GameConfig:
                     [(T, S), (P, P)],
                     [(S, T), (R, R)]
                 ],
-                "algorithm_type": "SINGLE AGENT"  # Example default value
+                "algorithm_type": "SINGLE AGENT",
+                "memory": 2,
+                "history_length": 2,
+                "obs_type": "other"
             }
             # Add more games as needed
         }
 
-    def add_game(self, game_name, rounds, payout_matrix, algorithm_type):
+    def add_game(self, game_name, rounds, payout_matrix, algorithm_type, memory, history_length, obs_type):
         if game_name not in self.games:
             self.games[game_name] = {
                 "rounds": rounds,
                 "payout_matrix": payout_matrix,
-                "algorithm_type": algorithm_type
+                "algorithm_type": algorithm_type,
+                "memory": memory,
+                "history_length": history_length,
+                "obs_type": obs_type
             }
         else:
             print(f"Game '{game_name}' already exists.")

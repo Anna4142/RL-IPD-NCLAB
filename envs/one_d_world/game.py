@@ -24,54 +24,74 @@ class CustomEnv(gym.Env):
         self.rounds = game_config["rounds"]
         self.payout_matrix = game_config["payout_matrix"]
         self.algorithm_type = game_config["algorithm_type"]
+        self.memory = game_config.get("memory", 1)
+        self.history_length = game_config.get("history_length", 1)
+        self.obs_type = game_config.get("obs_type", 'both')
 
-        self.action_space = Discrete(2)  # Assuming 2 actions: Cooperate or Defect
-        self.observation_space = Box(low=np.array([0, 0]), high=np.array([1, 1]), dtype=np.float32)
-
-        # Define the action and observation spaces
-        self.action_space = Discrete(2)  # action space is if they cooperate or deflect
-
-        # state space (0,0),(0,1),(1,0),(1,1)
-        self.observation_space = Box(
-            low=0, high=1, shape=(2, 2), dtype=int
-        )
-        # state space (0,0),(0,1),(1,0),(1,1)
-        self.state_space = ""
-        self.association={"dd":(1,1),"dc":(1,0),"cd":(0,1),"cc":(0,0)}
-        # Initialize the game state
         self.player1_action = None
         self.player2_action = None
-        self.current_round = 0
-        self.done = False
-        self.history_length=5
-        # Initialize history with empty actions; each action pair is represented as (-1, -1)
-        self.history = [(-1, -1) for _ in range(self.history_length)]
-        # Deriving action_size from the action space
+
+
+        self.action_space = Discrete(2)  # Assuming 2 actions: Cooperate or Defect
         self.action_size = self.action_space.n
 
-        # Calculating state_size (if necessary)
-        self.state_size = 4
+        # Calculate observation space size and initialize observation space
+        obs_size = self.calculate_observation_size()
+        self.observation_space = Box(low=-1, high=1, shape=(obs_size,), dtype=np.float32)
 
-    def calculate_state_size(self):
-        # Example calculation (adjust based on actual state representation)
-        return 4 ** self.history_length  # For binary actions and pairs of actions in history
+        self.association = {"dd": (1, 1), "dc": (1, 0), "cd": (0, 1), "cc": (0, 0)}
+        self.current_round = 0
+        self.done = False
+        self.history = [(-1, -1) for _ in range(self.history_length)]
+        self.state_size = 2 ** self.history_length  # Define this method if it isn't already
+
+    def calculate_observation_size(self):
+        if self.obs_type == 'both':
+            return 4 * self.history_length
+        elif self.obs_type in ['self', 'other']:
+            return 2 * self.history_length
+
+    def reset(self):
+        self.current_round = 0
+        self.done = False
+        self.history = [(-1, -1) for _ in range(self.history_length)]
+        return self.get_observation()
+
+    def step(self, actions):
+        if not isinstance(actions, (tuple, list)) or len(actions) != 2:
+            raise ValueError("Actions must be a tuple or list with two elements.")
+        self.update_history(actions[0], actions[1])
+        self.current_round += 1
+        if self.current_round >= self.rounds:
+            self.done = True
+        rewards = self.payout_matrix[actions[0]][actions[1]]
+        return self.get_observation(), rewards, self.done, {}
+
+    def update_history(self, action1, action2):
+        if len(self.history) >= self.history_length:
+            self.history.pop(0)
+        self.history.append((action1, action2))
+
+    def get_observation(self):
+        observation = []
+        for action1, action2 in self.history:
+            if self.obs_type == 'self':
+                observation.extend([action1])
+            elif self.obs_type == 'other':
+                observation.extend([action2])
+            elif self.obs_type == 'both':
+                observation.extend([action1, action2])
+        return np.array(observation, dtype=np.float32)
 
     def get_state(self):
-        """
-        Return the current state of the environment, encoded as an integer or
-        any suitable format that represents the joint actions or positions of both players.
-        """
-        # Assuming self.history[-1] contains the latest pair of actions taken by the two players
-        # and self.association maps string representations to action tuples
         last_actions = self.history[-1]
-
-        # Encode the state as an integer, for example
-        state = self.association.get(f'{last_actions[0]}{last_actions[1]}', -1)
-
-        # Alternatively, if you need a numerical representation directly usable in RL algorithms
-        # state_encoding = 2 * last_actions[0] + last_actions[1]  # Example encoding
-
+        action_key = f'{last_actions[0]}{last_actions[1]}'
+        state = self.association.get(action_key, -1)
         return state
+
+    def calculate_state_size(self):
+        return 4 ** self.history_length  # For binary actions and pairs of actions in history
+
     def reset(self):
         """
             Resets the game to the initial state and returns the initial observation.
@@ -86,7 +106,7 @@ class CustomEnv(gym.Env):
 
     def update_history(self, action1, action2):
         # Slide history to accommodate the new action pair
-        self.history.pop(0)  # Remove the oldest action pair
+        self.history.pop(0)  # Remove the6 oldest action pair
         self.history.append((action1, action2))  # Add the latest action pair
 
     def history_to_state(self):
