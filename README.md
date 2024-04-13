@@ -46,21 +46,32 @@ The `GameConfig` class plays a crucial role in setting up the parameters for dif
 
 ```python
 # Initialize game configurations with specific game payoff values
+# Initialize game configurations with specific game payoff values
 game_config = GameConfig(T=5, S=0, P=1, R=3)
 
-# Adding a new game configuration
+## Initialize with default payoff parameters
+game_config = GameConfig(T=5, S=0, P=1, R=3)
+
+# Add a new game configuration
 game_config.add_game(
     game_name="new_game",
     rounds=15,
     payout_matrix=[[(3, 3), (0, 5)], [(5, 0), (1, 1)]],
-    algorithm_type="MULTI AGENT"
+    algorithm_type="MULTI AGENT",
+    memory=4,     #length of observations recieved
+    history_length=4,  #length of state vector
+    obs_type="both"  # Can be 'self', 'other', or 'both'
 )
 
-# Accessing a game's configuration
-prisoners_dilemma_config = game_config.games["prisoners_dilemma"]
-print(f"Rounds: {prisoners_dilemma_config['rounds']}")
-print(f"Payout Matrix: {prisoners_dilemma_config['payout_matrix']}")
-print(f"Algorithm Type: {prisoners_dilemma_config['algorithm_type']}")
+# Retrieve configuration for an existing game
+prisoners_dilemma_config = game_config.get_game_config("prisoners_dilemma")
+if prisoners_dilemma_config:
+    print(f"Rounds: {prisoners_dilemma_config['rounds']}")
+    print(f"Payout Matrix: {prisoners_dilemma_config['payout_matrix']}")
+    print(f"Algorithm Type: {prisoners_dilemma_config['algorithm_type']}")
+    print(f"Memory: {prisoners_dilemma_config['memory']}")
+    print(f"History Length: {prisoners_dilemma_config['history_length']}")
+    print(f"Observation Type: {prisoners_dilemma_config['obs_type']}")
 
 ```
 ### Prerequisites
