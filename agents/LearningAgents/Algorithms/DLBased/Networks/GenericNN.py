@@ -12,8 +12,7 @@ class FullyConnected(nn.Module):
         for i in range(0,len(architecture)-1):
             self.layers.append(nn.Linear(architecture[i],architecture[i+1],bias=True))
 
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
+
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = F.relu(layer(x))

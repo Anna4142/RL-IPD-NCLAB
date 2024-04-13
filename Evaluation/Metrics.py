@@ -106,7 +106,7 @@ class ChoicePercentageMetric(BaseMetric):
     def reset(self):
         self.action_counts = {}
 
-    def save_results(self, experiment_id,   filename):
+    def save_results(self, experiment_id,  filename,expnum):
         metrics = self.get_metrics()
         # Prepare row data
         row_data = [experiment_id] + [metrics.get((i, j), 0) for i in range(2) for j in range(2)]
@@ -120,5 +120,5 @@ class ChoicePercentageMetric(BaseMetric):
                 writer.writerow(headers)
             writer.writerow(row_data)
 
-        super().save_results(experiment_id, expnum,filename)
+        #super().save_results(experiment_id,filename)
 

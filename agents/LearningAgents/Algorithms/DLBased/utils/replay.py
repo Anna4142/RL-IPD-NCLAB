@@ -1,47 +1,39 @@
 # this file implements the ReplayMemory class
 
 from collections import namedtuple
+
+
 import random
-import numpy as np
-import os
-import torch
+from collections import deque
 Transition = namedtuple('Transition', ('state', 'action1', 'action2', 'next_state', 'reward1', 'reward2'))
-
-class ReplayMemory(object):
+class ReplayBuffer:
     def __init__(self, capacity):
-        self.capacity = capacity
-        self.memory = []
-        self.position = 0
+        """ Initialize the replay buffer with a maximum capacity.
+        Args:
+            capacity (int): The maximum number of tuples to store in the buffer.
+        """
+        self.buffer = deque(maxlen=capacity)
 
-    def push(self, *args):
-        if len(self.memory) < self.capacity:
-            self.memory.append(None)
-        self.memory[self.position] = Transition(*args)
-        self.position = (self.position + 1) % self.capacity
+    def add(self, state, action1, action2, next_state, reward1, reward2):
+        """ Add a new experience to the buffer using the Transition namedtuple.
+        Args:
+            state, action1, action2, next_state, reward1, reward2: Components of a transition.
+        """
+        self.buffer.append(Transition(state, action1, action2, next_state, reward1, reward2))
 
     def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
+        """ Sample a batch of experiences from the buffer.
+        Args:
+            batch_size (int): The number of experiences to sample.
+        Returns:
+            list: A batch of sampled experiences.
+        """
+        return random.sample(self.buffer, min(len(self.buffer), batch_size))
 
-    def __len__(self):
-        return len(self.memory)
+    def size(self):
+        """ Return the current size of the buffer.
+        Returns:
+            int: The number of experiences currently stored in the buffer.
+        """
+        return len(self.buffer)
 
-
-
-    def save(self, model, data_buffer):
-        """Saves the states and corresponding Q-values using the latest actions and rewards from DataBuffer."""
-        # Assuming get_latest_state() retrieves the latest state
-        latest_state = data_buffer.get_latest_state()
-        latest_action1 = data_buffer.get_latest_action1()
-        latest_action2 = data_buffer.get_latest_action2()
-        # Assuming a way to combine or choose between action1 and action2 for the model
-        # For simplicity, only action1 is used here
-        action = torch.tensor([latest_action1], dtype=torch.long)
-
-        # Convert state to tensor and add batch dimension (model expects batch dimension)
-        state_tensor = torch.tensor([latest_state], dtype=torch.float32)
-
-        # Compute Q-values for the latest state
-        q_values = model(state_tensor).detach().numpy()
-
-        # Save the state and Q-values to disk
-        np.savez("latest_state_q_values", state=state_tensor.numpy(), q_values=q_values)

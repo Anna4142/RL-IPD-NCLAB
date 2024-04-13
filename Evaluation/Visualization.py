@@ -42,7 +42,7 @@ class MetricsVisualizer:
         self.cooperation_rate_metric.save_results(experiment_id, "cooperation_rate.json", experiment_number)
 
         self.choice_percentage_metric.save_results(experiment_id,
-                                                   "Results/ChoicePercentagesLearningAgainstLearning.csv")
+                                                   "Results/ChoicePercentagesLearningAgainstLearningNew.csv", experiment_number)
 
 
 
