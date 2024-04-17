@@ -21,7 +21,7 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
 
-    agent1 = DQNAgent(env)
+    agent1 = SARSAgent(env)
 
     agent2 =DQNAgent(env)
 
@@ -38,41 +38,40 @@ visualizer = MetricsVisualizer(data_buffer)
 # Simulation loop
 action1=0
 action2=0
+state=(0,[0., 0., 0., 0., 0. ,0. ,0. ,0. ,0., 0. ,0. ,0., 0., 0., 0., 0.])
 for _ in range(env.rounds):
-    # Fetch appropriate state for each agent
-    state_agent1 = env.get_one_hot_state() if isinstance(agent1, DQNAgent) else env.get_state()
-    state_agent2 = env.get_one_hot_state() if isinstance(agent2, DQNAgent) else env.get_state()
+
 
     # Agents decide their actions based on their respective states
-    action1 = agent1.decide_action(state_agent1)
-    action2 = agent2.decide_action(state_agent2)
+    action1 = agent1.decide_action(state[0])
+    action2 = agent2.decide_action(state[1])
     print("action 1",action1)
     print("action 2",action2)
     # Environment steps forward based on the selected actions
-    next_state, rewards, done, info = env.step((action1, action2))
+    next_state, rewards, done, info = env.step((action1, action2), agent1, agent2)
+    print("next state 1", next_state[0])
+    print("next state 2",next_state[1])
 
-    # Fetch the next state for each agent
-    next_state_agent1 = env.get_one_hot_state() if isinstance(agent1, DQNAgent) else env.get_state()
-    next_state_agent2 = env.get_one_hot_state() if isinstance(agent2, DQNAgent) else env.get_state()
-    print("nsa1",next_state_agent1)
-    print("nsz2",next_state_agent2)
+
+
     # Store transition for each agent if they are DQNAgents
     if isinstance(agent1, DQNAgent):
-        agent1.store_transition(state_agent1, action1, action2, next_state_agent1, rewards[0], rewards[1])
+        agent1.store_transition(state[0], action1, action2, next_state[0], rewards[0], rewards[1])
     if isinstance(agent2, DQNAgent):
-        agent2.store_transition(state_agent2, action1, action2, next_state_agent2, rewards[0], rewards[1])
+        agent2.store_transition(state[1], action1, action2, next_state[1], rewards[1], rewards[1])
 
     # Agents learn from the transition
     if hasattr(agent1, 'learn'):
-        agent1.learn(state_agent1, action1, rewards[0], next_state_agent1, done)
+        agent1.learn(state[0], action1, rewards[0], next_state[0], done)
     if hasattr(agent2, 'learn'):
-        agent2.learn(state_agent2, action2, rewards[1], next_state_agent2, done)
+        agent2.learn(state[1], action2, rewards[1], next_state[1], done)
 
     # Update visualization and render environment
     visualizer.update_metrics(rewards[0], rewards[1], action1, action2)
-    next_state=(action1,action2)
+    position=(action1,action2)
+    state=next_state
 
-    env.render(pos=next_state)
+    env.render(pos=position)
 
 
 

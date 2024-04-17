@@ -2,6 +2,14 @@ from sys import stdout
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
+from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, Probability25Cooperator,Probability50Cooperator,Probability75Cooperator, TitForTat, SuspiciousTitForTat, GenerousTitForTat, Pavlov, GRIM
+
+from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaValueBased import SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
+
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.DQN import DQNAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.REINFORCE import REINFORCEAgent
+
+#from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from numpy.random import randint
 import matplotlib.pyplot as plt
 from envs.GameConfig import GameConfig
@@ -110,38 +118,32 @@ class CustomEnv(gym.Env):
             state.extend([action1, action2])
         return np.array(state, dtype=np.float32)
 
-    def step(self, actions, use_one_hot=False):
+    def step(self, actions, agent1, agent2):
         """
-        Takes a tuple of actions for both players and returns the new observation,
-        reward, done flag, and any additional information.
+        Takes a tuple of actions for both players, considers individual agent state format preferences,
+        and returns tailored state representations along with game outcomes.
         """
-        if not isinstance(actions, (tuple, list)) or len(actions) != 2:
-            raise ValueError("Actions should be a tuple or list with two elements.")
-
         p1_action, p2_action = actions
+
+        # Validate actions
         if p1_action not in [COOPERATE, DEFECT] or p2_action not in [COOPERATE, DEFECT]:
-            # Handle invalid action; for example, default to COOPERATE
-            p1_action, p2_action = COOPERATE, COOPERATE  # Default actions if out of bounds
+            p1_action, p2_action = COOPERATE, COOPERATE
 
-        self.player1_action = p1_action
-        self.player2_action = p2_action
+        # Update game state based on actions
         self.update_history(p1_action, p2_action)
-
-        # Calculate the payouts based on the current actions
         p1_payout, p2_payout = self.payout_matrix[p1_action][p2_action]
-
-        # Increment the current round and check if the game is done
         self.current_round += 1
-        if self.current_round >= self.rounds:
-            self.done = True
+        self.done = self.current_round >= self.rounds
 
-        # Determine the state representation based on the flag use_one_hot
-        state = self.get_one_hot_state() if use_one_hot else self.history_to_state()
+        # Fetch state for each agent according to their preferences
+        state_for_agent1 = self.get_one_hot_state() if isinstance(agent1, DQNAgent) else self.get_state_index()
+        state_for_agent2 = self.get_one_hot_state() if isinstance(agent2, DQNAgent) else self.get_state_index()
 
+        print("State for Agent 1:", state_for_agent1)
+        print("State for Agent 2:", state_for_agent2)
 
-
-        # Return the new observation, rewards, done flag, and any additional information
-        return state, (p1_action, p2_action), (p1_payout, p2_payout), {}
+        # Return states and game outcomes
+        return (state_for_agent1, state_for_agent2), (p1_action, p2_action), (p1_payout, p2_payout), {}
 
     def print_ep(obs, reward, done, info):
         print({"history": obs, "reward": reward, "simulation over": done, "info": info})
@@ -160,6 +162,16 @@ class CustomEnv(gym.Env):
         one_hot_state = np.zeros(state_size, dtype=np.float32)
         one_hot_state[index] = 1.0
         return one_hot_state
+
+    def get_state_index(self):
+        """Calculate the unique integer index for the current state."""
+        index = 0
+        multiplier = 1
+        for action1, action2 in reversed(self.history):
+            state_index = (action1 * 2) + action2  # Convert actions into a single index
+            index += state_index * multiplier
+            multiplier *= 4  # Increase multiplier as we go back in time
+        return index
 
     def render(self, mode='human', pos=None, close=False):
             """

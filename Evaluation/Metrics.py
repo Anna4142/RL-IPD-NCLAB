@@ -13,7 +13,7 @@ class CumulativeRewardMetric(BaseMetric):
         # Check if rewards are not None for safety
         if reward1 is not None and reward2 is not None:
             # Calculate the new reward to be added
-            latest_reward = reward1 + reward2
+            latest_reward = int(reward1 + reward2)
 
             # If the list is empty, add the latest_reward directly
             if not self.cumulative_rewards:
@@ -41,7 +41,7 @@ class AverageRewardMetric(BaseMetric):
 
     def update(self, reward1, reward2):
         # Directly use the rewards passed to it for updating
-        avg_reward = reward1 + reward2
+        avg_reward = int(reward1 + reward2)
         self.all_rewards.append(avg_reward)
 
         # Perform time averaging based on the window size
