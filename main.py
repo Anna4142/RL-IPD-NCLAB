@@ -4,14 +4,23 @@ from agents.FixedAgents.FixedAgents import UnconditionalCooperator, Unconditiona
 
 from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaValueBased import SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
 
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.DQN import DQNAgent
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.REINFORCE import REINFORCEAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import REINFORCEAgent
 
 from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
 from ExperimentManager import ExperimentManager
+from agents.AgentsConfig import agent_types
+
+def create_agent(agent_type, agent_name):
+    agent_class = agent_types[agent_type][agent_name]
+    return agent_class(env)  # Assuming all agents can be instantiated without additional args
+
+# Example of creating an agent
 env = CustomEnv("prisoners_dilemma")
+
+
 algorithm_type = env.algorithm_type
 
 if algorithm_type == "MULTI AGENT":
@@ -21,9 +30,11 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
 
-    agent1 = SARSAgent(env)
-
-    agent2 =DQNAgent(env)
+    agent1 = create_agent("Vanilla", "SARSAgent")
+    agent2 = create_agent("Deep", "REINFORCEAgent")
+    initial_state1 = env.get_initial_state_for_agent(agent1)
+    initial_state2 = env.get_initial_state_for_agent(agent2)
+    state = (initial_state1,initial_state2)
 
     agent_names = f"{agent1.__class__.__name__}_{agent2.__class__.__name__}"
 # Assuming 'agent_names' is set from the above logic
@@ -38,7 +49,7 @@ visualizer = MetricsVisualizer(data_buffer)
 # Simulation loop
 action1=0
 action2=0
-state=(0,[0., 0., 0., 0., 0. ,0. ,0. ,0. ,0., 0. ,0. ,0., 0., 0., 0., 0.])
+
 for _ in range(env.rounds):
 
 
@@ -51,7 +62,7 @@ for _ in range(env.rounds):
     next_state, rewards, done, info = env.step((action1, action2), agent1, agent2)
     print("next state 1", next_state[0])
     print("next state 2",next_state[1])
-
+    state = next_state
 
 
     # Store transition for each agent if they are DQNAgents
@@ -69,7 +80,7 @@ for _ in range(env.rounds):
     # Update visualization and render environment
     visualizer.update_metrics(rewards[0], rewards[1], action1, action2)
     position=(action1,action2)
-    state=next_state
+
 
     env.render(pos=position)
 

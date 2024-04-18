@@ -120,8 +120,8 @@ class CustomEnv(gym.Env):
 
     def step(self, actions, agent1, agent2):
         """
-        Takes a tuple of actions for both players, considers individual agent state format preferences,
-        and returns tailored state representations along with game outcomes.
+        Executes a step using actions from both players, checks agent types to determine state representation,
+        and returns the tailored state representations and game outcomes.
         """
         p1_action, p2_action = actions
 
@@ -135,9 +135,9 @@ class CustomEnv(gym.Env):
         self.current_round += 1
         self.done = self.current_round >= self.rounds
 
-        # Fetch state for each agent according to their preferences
-        state_for_agent1 = self.get_one_hot_state() if isinstance(agent1, DQNAgent) else self.get_state_index()
-        state_for_agent2 = self.get_one_hot_state() if isinstance(agent2, DQNAgent) else self.get_state_index()
+        # Determine state representation based on agent type
+        state_for_agent1 = self.get_one_hot_state() if agent1.agent_type == "Deep" else self.get_state_index()
+        state_for_agent2 = self.get_one_hot_state() if agent2.agent_type == "Deep" else self.get_state_index()
 
         print("State for Agent 1:", state_for_agent1)
         print("State for Agent 2:", state_for_agent2)
@@ -173,6 +173,14 @@ class CustomEnv(gym.Env):
             multiplier *= 4  # Increase multiplier as we go back in time
         return index
 
+    def get_initial_state_for_agent(self, agent):
+        """Generate initial state based on the agent type."""
+        if agent.agent_type == "Deep":
+            # For deep agents, initialize a zero vector or some normalized vector
+            return np.zeros(self.state_size, dtype=np.float32)
+        else:
+            # For fixed or vanilla agents, use an integer index or similar simple format
+            return 0  # or self.calculate_initial_state_index()
     def render(self, mode='human', pos=None, close=False):
             """
             Renders the current state of the game to the screen.
