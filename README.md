@@ -73,7 +73,35 @@ if prisoners_dilemma_config:
     print(f"Observation Type: {prisoners_dilemma_config['obs_type']}")
 
 ```
-### Prerequisites
+### Agents Configuration in RL-IPD-NCLAB
+The `agents_config.py` file is crucial for defining and managing different types of reinforcement learning agents used in the RL-IPD-NCLAB project. It categorizes agents into `Fixed`, `Vanilla`, and `Deep` types based on their learning mechanisms and strategies, facilitating easy setup and management of agent-based experiments.
+
+#### Purpose
+- **Agent Management**: Organizes and simplifies the instantiation of diverse agents.
+- **Flexibility**: Supports easy modifications and additions to experiment with various RL strategies.
+
+#### Agent Types
+- **Fixed**: Agents with static strategies (e.g., Always Cooperate).
+- **Vanilla**: Agents using basic RL algorithms (e.g., Q-Learning, SARSA).
+- **Deep**: Agents employing advanced neural network-based methods (e.g., DQN, REINFOCE)
+
+## Example Usage
+
+The configuration defined in `agents/agents_config.py` allows for the straightforward creation and utilization of different agent types within simulations. Here's how you can create agents of different types in the 'main.py':
+
+```python
+from agents_config import agent_types
+
+# Create a deep learning agent (REINFORCE)
+reinforce_agent = agent_types['Deep']['REINFORCEAgent'](env)
+
+# Create a vanilla learning agent (QLearning)
+q_learning_agent = agent_types['Vanilla']['QLearningAgent'](env)
+
+# Create a fixed strategy agent (TitForTat)
+tit_for_tat_agent = agent_types['Fixed']['TitForTat'](env)
+```
+#### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
 
