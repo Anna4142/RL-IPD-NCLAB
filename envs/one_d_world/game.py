@@ -2,14 +2,7 @@ from sys import stdout
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
-from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, Probability25Cooperator,Probability50Cooperator,Probability75Cooperator, TitForTat, SuspiciousTitForTat, GenerousTitForTat, Pavlov, GRIM
 
-from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaValueBased import SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
-
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.DQN import DQNAgent
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.REINFORCE import REINFORCEAgent
-
-#from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from numpy.random import randint
 import matplotlib.pyplot as plt
 from envs.GameConfig import GameConfig

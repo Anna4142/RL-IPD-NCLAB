@@ -31,7 +31,7 @@ if algorithm_type == "MULTI AGENT":
 elif algorithm_type == "SINGLE AGENT":
 
     agent1 = create_agent("Vanilla", "SARSAgent")
-    agent2 = create_agent("Deep", "REINFORCEAgent")
+    agent2 = create_agent("Deep", "ActorCriticAgent")
     initial_state1 = env.get_initial_state_for_agent(agent1)
     initial_state2 = env.get_initial_state_for_agent(agent2)
     state = (initial_state1,initial_state2)

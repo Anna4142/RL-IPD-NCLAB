@@ -10,7 +10,7 @@ from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaVa
     SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
 )
 
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent, REINFORCEAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent, REINFORCEAgent, ActorCriticAgent
 
 agent_types = {
     "Fixed": {
@@ -34,6 +34,7 @@ agent_types = {
     },
     "Deep": {
         "DQNAgent": DQNAgent,
-        "REINFORCEAgent": REINFORCEAgent
+        "REINFORCEAgent": REINFORCEAgent,
+        "ActorCriticAgent": ActorCriticAgent
     }
 }

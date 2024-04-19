@@ -103,3 +103,57 @@ class REINFORCEAgent(GenericNNAgent):
         # Clear buffers
         self.log_probs.clear()
         self.rewards.clear()
+
+
+class ActorCriticAgent(GenericNNAgent):
+    def __init__(self, env, agent_type="Deep", lr_actor=0.001, lr_critic=0.005):
+        super().__init__(env, agent_type=agent_type)
+
+        self.state_size = env.state_size
+        self.action_size = env.action_size
+        hidden_layers = env.hidden_layers if hasattr(env, 'hidden_layers') else [128, 128]
+
+        # Actor Network
+        self.actor = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
+        self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=lr_actor)
+
+        # Critic Network
+        self.critic = FullyConnected([self.state_size] + hidden_layers + [1])
+        self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=lr_critic)
+
+        self.gamma = 0.99
+        self.current_log_prob=0
+    def decide_action(self, state):
+        state_tensor = torch.tensor([state], dtype=torch.float32)
+        logits = self.actor(state_tensor)
+        action_probs = F.softmax(logits, dim=-1)
+        distribution = torch.distributions.Categorical(action_probs)
+        action = distribution.sample()
+        self.current_log_prob = distribution.log_prob(action)  # Store log_prob internally
+        return action.item()
+
+    def learn(self, state, action, reward, next_state, done):
+        state = torch.tensor([state], dtype=torch.float32)
+        next_state = torch.tensor([next_state], dtype=torch.float32)
+        reward = torch.tensor([reward], dtype=torch.float32)
+        done = torch.tensor([done], dtype=torch.float32)
+
+
+        # Critic update
+        value = self.critic(state)
+        next_value = self.critic(next_state).detach()
+        td_target = reward + 0.99 * next_value * (1 - done)
+        td_error = td_target - value
+        loss_critic = td_error.pow(2).mean()
+        self.optimizer_critic.zero_grad()
+        loss_critic.backward()
+        self.optimizer_critic.step()
+
+        # Retrieve the stored log_prob
+        log_prob = self.current_log_prob
+
+        # Actor loss
+        actor_loss = (-log_prob * td_error.detach()).mean()  # Ensure it's a scalar
+        self.optimizer_actor.zero_grad()
+        actor_loss.backward()
+        self.optimizer_actor.step()
