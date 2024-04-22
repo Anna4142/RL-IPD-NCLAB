@@ -13,9 +13,22 @@ from Buffer.DataBuffer import DataBuffer
 from ExperimentManager import ExperimentManager
 from agents.AgentsConfig import agent_types
 
-def create_agent(agent_type, agent_name):
+
+def create_agent(env,agent_type, agent_name):
+    # Retrieve the class for the agent
     agent_class = agent_types[agent_type][agent_name]
-    return agent_class(env)  # Assuming all agents can be instantiated without additional args
+
+    # Check if the agent type is 'Deep', and initialize accordingly
+    if agent_type == "Deep":
+        use_spiking=True
+        # Pass 'use_spiking_nn' for deep learning agents
+        return agent_class(env,use_spiking_nn=True)
+    else:
+        # Initialize other types of agents without 'use_spiking_nn'
+        return agent_class(env)
+
+
+# Assuming all agents can be instantiated without additional args
 
 # Example of creating an agent
 env = CustomEnv("prisoners_dilemma")
@@ -30,8 +43,8 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
 
-    agent1 = create_agent("Vanilla", "SARSAgent")
-    agent2 = create_agent("Deep", "ActorCriticAgent")
+    agent1 = create_agent(env,"Vanilla", "SARSAgent")
+    agent2 = create_agent(env,"Deep", "DQNAgent")
     initial_state1 = env.get_initial_state_for_agent(agent1)
     initial_state2 = env.get_initial_state_for_agent(agent2)
     state = (initial_state1,initial_state2)

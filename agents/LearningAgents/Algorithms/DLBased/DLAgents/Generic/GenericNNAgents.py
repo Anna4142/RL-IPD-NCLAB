@@ -1,24 +1,33 @@
 import torch
 import torch.optim as optim
 import random
+import numpy as np
 import torch.nn.functional as F
 from agents.LearningAgents.Algorithms.DLBased.Networks.GenericNN import FullyConnected
 from agents.LearningAgents.Algorithms.DLBased.utils.replay import ReplayBuffer, Transition
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.BaseGenericNN import GenericNNAgent
-
+from agents.LearningAgents.Algorithms.DLBased.Networks.SpikingNN import FullyConnectedSNN
 
 class DQNAgent:
-    def __init__(self, env, buffer_capacity=10000, agent_type="Deep"):
+    def __init__(self, env, use_spiking_nn, agent_type="Deep"):
+
+
+
+        self.buffer_capacity = 10000
         self.env = env
         self.state_size = env.state_size
         self.action_size = env.action_size
         self.agent_type = agent_type
         hidden_layers = env.hidden_layers if hasattr(env, 'hidden_layers') else [128, 128]
-        self.q_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
-        self.target_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
+        if use_spiking_nn:
+            self.q_network = FullyConnectedSNN([self.state_size] + hidden_layers + [self.action_size])
+            self.target_network = FullyConnectedSNN([self.state_size] + hidden_layers + [self.action_size])
+        else:
+            self.q_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
+            self.target_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
-        self.replay_buffer = ReplayBuffer(capacity=buffer_capacity)
+        self.replay_buffer = ReplayBuffer(capacity=self.buffer_capacity)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.001)
         self.gamma = 0.99
         self.epsilon = 1.0
@@ -34,13 +43,14 @@ class DQNAgent:
         return q_values.argmax().item()
 
     def learn(self, state, action, reward, next_state, done):
+        state = np.array(state)  # Convert list of numpy arrays to a single numpy array
 
         state = torch.tensor([state], dtype=torch.float32)
         action = torch.tensor([action], dtype=torch.long)
         reward = torch.tensor([reward], dtype=torch.float32)
         next_state = torch.tensor([next_state], dtype=torch.float32)
         done = torch.tensor([done], dtype=torch.float32)
-
+        print("op of spiking qn",self.q_network(state))
         current_q_values = self.q_network(state).gather(1, action.unsqueeze(-1)).squeeze(-1)
         next_q_values = self.target_network(next_state).max(1)[0].detach()
         expected_q_values = reward + self.gamma * next_q_values * (1 - done)
@@ -58,8 +68,8 @@ class DQNAgent:
 
 
 class REINFORCEAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", **kwargs):
-        super().__init__(env, agent_type=agent_type, **kwargs)
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=False, **kwargs):
+        super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn, **kwargs)
         self.log_probs = []
         self.rewards = []
         self.gamma=0.9
@@ -106,8 +116,8 @@ class REINFORCEAgent(GenericNNAgent):
 
 
 class ActorCriticAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", lr_actor=0.001, lr_critic=0.005):
-        super().__init__(env, agent_type=agent_type)
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=False, lr_actor=0.001, lr_critic=0.005):
+        super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn)
 
         self.state_size = env.state_size
         self.action_size = env.action_size
