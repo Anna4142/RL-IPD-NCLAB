@@ -17,6 +17,7 @@ class GenericNNAgent(ABC):
         self.action_size = env.action_size
         self.hidden_layers = hidden_layers if hidden_layers else [128, 128]
         if self.use_spiking_nn:
+            print("using spiking")
             self.network = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
         else:
             self.network = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])

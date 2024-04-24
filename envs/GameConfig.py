@@ -2,14 +2,14 @@ class GameConfig:
     def __init__(self, T, S, P, R):
         self.games = {
             "prisoners_dilemma": {
-                "rounds": 200,
+                "rounds": 1000,
                 "payout_matrix": [
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
                 "algorithm_type": "SINGLE AGENT",
-                "memory": 2,  # Number of past rounds to remember
-                "history_length": 2,  # Number of past actions to keep in history
+                "memory": 5,  # Number of past rounds to remember
+                "history_length": 5,  # Number of past actions to keep in history
                 "obs_type": "both"  # Type of observation data to include-can be self other or both
             },
             "stag_hunt": {

@@ -57,7 +57,8 @@ class DQNAgent:
 
         loss = F.mse_loss(current_q_values, expected_q_values)
         self.optimizer.zero_grad()
-        loss.backward()
+        #loss.backward(retain_graph=True)
+
         self.optimizer.step()
 
         if self.epsilon > self.epsilon_min:
@@ -68,7 +69,7 @@ class DQNAgent:
 
 
 class REINFORCEAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", use_spiking_nn=False, **kwargs):
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, **kwargs):
         super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn, **kwargs)
         self.log_probs = []
         self.rewards = []
@@ -116,7 +117,7 @@ class REINFORCEAgent(GenericNNAgent):
 
 
 class ActorCriticAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", use_spiking_nn=False, lr_actor=0.001, lr_critic=0.005):
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, lr_actor=0.001, lr_critic=0.005):
         super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn)
 
         self.state_size = env.state_size

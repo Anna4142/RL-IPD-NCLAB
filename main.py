@@ -20,8 +20,7 @@ def create_agent(env,agent_type, agent_name):
 
     # Check if the agent type is 'Deep', and initialize accordingly
     if agent_type == "Deep":
-        use_spiking=True
-        # Pass 'use_spiking_nn' for deep learning agents
+
         return agent_class(env,use_spiking_nn=True)
     else:
         # Initialize other types of agents without 'use_spiking_nn'
@@ -43,8 +42,8 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
 
-    agent1 = create_agent(env,"Vanilla", "SARSAgent")
-    agent2 = create_agent(env,"Deep", "DQNAgent")
+    agent1 = create_agent(env,"Fixed", "TitForTat")
+    agent2 = create_agent(env,"Deep", "REINFORCEAgent")
     initial_state1 = env.get_initial_state_for_agent(agent1)
     initial_state2 = env.get_initial_state_for_agent(agent2)
     state = (initial_state1,initial_state2)

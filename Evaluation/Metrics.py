@@ -13,7 +13,7 @@ class CumulativeRewardMetric(BaseMetric):
         # Check if rewards are not None for safety
         if reward1 is not None and reward2 is not None:
             # Calculate the new reward to be added
-            latest_reward = int(reward1 + reward2)
+            latest_reward = reward1 + reward2
 
             # If the list is empty, add the latest_reward directly
             if not self.cumulative_rewards:
@@ -41,7 +41,7 @@ class AverageRewardMetric(BaseMetric):
 
     def update(self, reward1, reward2):
         # Directly use the rewards passed to it for updating
-        avg_reward = int(reward1 + reward2)
+        avg_reward = reward1 + reward2
         self.all_rewards.append(avg_reward)
 
         # Perform time averaging based on the window size
@@ -106,7 +106,7 @@ class ChoicePercentageMetric(BaseMetric):
     def reset(self):
         self.action_counts = {}
 
-    def save_results(self, experiment_id,  filename,expnum):
+    def save_results(self, experiment_id,   filename,expnum):
         metrics = self.get_metrics()
         # Prepare row data
         row_data = [experiment_id] + [metrics.get((i, j), 0) for i in range(2) for j in range(2)]
@@ -120,5 +120,5 @@ class ChoicePercentageMetric(BaseMetric):
                 writer.writerow(headers)
             writer.writerow(row_data)
 
-        #super().save_results(experiment_id,filename)
+        #super().save_results(experiment_id,filename,expnum)
 

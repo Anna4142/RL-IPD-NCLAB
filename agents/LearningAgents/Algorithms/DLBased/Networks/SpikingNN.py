@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import snntorch as snn
 from snntorch import spikegen
+torch.autograd.set_detect_anomaly(True)
 
 class FullyConnectedSNN(nn.Module):
     def __init__(self, architecture, beta=0.9):
         super(FullyConnectedSNN, self).__init__()
+        print(architecture)
         self.layers = nn.ModuleList()
         self.spiking_layers = nn.ModuleList()  # Create a module list for spiking layers
 
@@ -17,14 +19,14 @@ class FullyConnectedSNN(nn.Module):
     def forward(self, x):
         print("Input to network:", x.shape)  # Print input shape
         for i, layer in enumerate(self.layers[:-1]):
-            x = layer(x)
-            print(f"Output of Linear layer {i}: ", x.shape)  # Print output shape after each linear layer
-
+            x = layer(x)  # Apply the linear transformation
             x = self.spiking_layers[i](x)  # Apply spiking neuron dynamics
-            print(f"Output of Spiking layer {i}: ", x.shape)  # Print output shape after each spiking layer
+
+            # Ensure x is a tensor; assuming spiking layer outputs a tensor directly
+            if isinstance(x, tuple):
+                x = x[0]  # Assuming the tensor is the first element in the tuple
 
         x = self.layers[-1](x)  # Output layer does not have spiking dynamics
-        print("Output of final layer:", x.shape)  # Print final output shape
         return x
 
     def forward_return_all(self, x):
