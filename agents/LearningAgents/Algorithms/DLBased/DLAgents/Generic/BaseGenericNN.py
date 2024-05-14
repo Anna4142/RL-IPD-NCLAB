@@ -7,7 +7,7 @@ from agents.LearningAgents.Algorithms.DLBased.Networks.SpikingNN import FullyCon
 from abc import ABC, abstractmethod
 
 class GenericNNAgent(ABC):
-    def __init__(self, env, use_spiking_nn, hidden_layers=None, learning_rate=0.01, agent_type="Deep"):
+    def __init__(self, env, use_spiking_nn=True, hidden_layers=None, learning_rate=0.01, agent_type="Deep"):
         self.env = env
         self.use_spiking_nn = use_spiking_nn
         self.learning_rate = learning_rate
