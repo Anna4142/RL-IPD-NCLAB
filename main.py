@@ -6,33 +6,62 @@ from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaVa
 
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import REINFORCEAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import ActorCriticAgent
 
 from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
 from ExperimentManager import ExperimentManager
 from agents.AgentsConfig import agent_types
+import os
+import os
 
-
-def create_agent(env,agent_type, agent_name):
+def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_weights=False, base_directory=None,
+                     experiment_id=None):
     # Retrieve the class for the agent
     agent_class = agent_types[agent_type][agent_name]
 
+
     # Check if the agent type is 'Deep', and initialize accordingly
     if agent_type == "Deep":
+        agent = agent_class(env, use_spiking_nn=use_spiking_nn)
+        if load_saved_weights:
+            weights_path = os.path.join(base_directory,experiment_id)
+            print("weights loaded from",weights_path)
 
-        return agent_class(env,use_spiking_nn=True)
+            if os.path.exists(weights_path):
+                agent.load_weights(weights_path)
+            return agent_class(env, use_spiking_nn=use_spiking_nn)
+        else:
+            print(f"No weights loaded for {agent_name}, starting from scratch or no weights found.")
+            return agent_class(env, use_spiking_nn=use_spiking_nn)
     else:
-        # Initialize other types of agents without 'use_spiking_nn'
         return agent_class(env)
 
-
-# Assuming all agents can be instantiated without additional args
-
-# Example of creating an agent
 env = CustomEnv("prisoners_dilemma")
+load_weights_flag = False
+use_predefined_weights_id = False  # Boolean flag to choose weights directory
+# Configuration or initial settings
+agent_type1 = "Fixed"
+agent_name1 = "TitForTat"
+agent_type2 = "Deep"
+agent_name2 = "ActorCriticAgent"
+save_directory="weights"
+experiment_id = f"experiment_{agent_name1}_{agent_name2}"
+experiment_manager = ExperimentManager()
+experiment_number = experiment_manager.get_next_experiment_number(experiment_id)
+experiment_number = f"experiment_{experiment_number}"
+print("experiment number",experiment_number)
+# Generate experiment_id based on known agent types or other details
+if use_predefined_weights_id:
+     experiment_id_loading= f"experiment_UnconditionalCooperator_DQNAgent"
+else:
+    experiment_id_loading= experiment_id
 
 
+
+
+data_buffer = DataBuffer()
 algorithm_type = env.algorithm_type
 
 if algorithm_type == "MULTI AGENT":
@@ -41,21 +70,18 @@ if algorithm_type == "MULTI AGENT":
     agent = NASHQ.NashQAgent(env)
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
+    ###TEMPORARY SOLUTION
 
-    agent1 = create_agent(env,"Fixed", "TitForTat")
-    agent2 = create_agent(env,"Deep", "REINFORCEAgent")
+    agent1 = create_agent(env, agent_type1, agent_name1, base_directory=save_directory, experiment_id=experiment_id_loading)
+    agent2 = create_agent(env, agent_type2, agent_name2, use_spiking_nn=False, load_saved_weights=False,
+                          base_directory=save_directory, experiment_id=experiment_id_loading)
     initial_state1 = env.get_initial_state_for_agent(agent1)
     initial_state2 = env.get_initial_state_for_agent(agent2)
     state = (initial_state1,initial_state2)
 
     agent_names = f"{agent1.__class__.__name__}_{agent2.__class__.__name__}"
-# Assuming 'agent_names' is set from the above logic
-experiment_id = f"experiment_{agent_names}"
-experiment_manager = ExperimentManager()
-experiment_number = experiment_manager.get_next_experiment_number(experiment_id)
-experiment_number = f"experiment_{experiment_number}"
-print("experiment number",experiment_number)
-data_buffer = DataBuffer()
+
+
 # Initialize the MetricsVisualizer with the data buffer
 visualizer = MetricsVisualizer(data_buffer)
 # Simulation loop
@@ -96,11 +122,21 @@ for _ in range(env.rounds):
 
     env.render(pos=position)
 
+if algorithm_type == "SINGLE AGENT":
+    save_directory = f'{save_directory}/{experiment_id}'
+
+    # Check if the agent_type attribute of each agent is 'Deep' before saving
+    if agent1.agent_type == "Deep":
+        agent1.save_weights( save_directory )
+    if agent2.agent_type == "Deep":
+        agent2.save_weights( save_directory)
+
 
 
 
 # Save results after simulation
 visualizer.save_all_results_and_plots(experiment_id, experiment_number)
+
 
 
 

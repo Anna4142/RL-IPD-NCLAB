@@ -129,8 +129,19 @@ class CustomEnv(gym.Env):
         self.done = self.current_round >= self.rounds
 
         # Determine state representation based on agent type
-        state_for_agent1 = self.get_one_hot_state() if agent1.agent_type == "Deep" else self.get_state_index()
-        state_for_agent2 = self.get_one_hot_state() if agent2.agent_type == "Deep" else self.get_state_index()
+        if agent1.agent_type == "Fixed":
+            state_for_agent1 = p2_action  # The last action of the other agent
+        elif agent1.agent_type == "Deep":
+            state_for_agent1 = self.get_one_hot_state()
+        else:
+            state_for_agent1 = self.get_state_index()
+
+        if agent2.agent_type == "Fixed":
+            state_for_agent2 = p1_action  # The last action of the other agent
+        elif agent2.agent_type == "Deep":
+            state_for_agent2 = self.get_one_hot_state()
+        else:
+            state_for_agent2 = self.get_state_index()
 
         print("State for Agent 1:", state_for_agent1)
         print("State for Agent 2:", state_for_agent2)
