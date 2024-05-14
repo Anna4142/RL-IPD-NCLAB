@@ -67,6 +67,22 @@ class DQNAgent:
     def store_transition(self, state, action1, action2, next_state, reward, done):
         self.replay_buffer.add(state, action1, action2, next_state, reward, done)
 
+    def save_weights(self, filepath):
+        torch.save({
+            'q_network_state_dict': self.q_network.state_dict(),
+            'target_network_state_dict': self.target_network.state_dict(),
+        }, filepath)
+        print(f"Weights saved to {filepath}")
+
+    def load_weights(self, filepath):
+        checkpoint = torch.load(filepath)
+        self.q_network.load_state_dict(checkpoint['q_network_state_dict'])
+        self.target_network.load_state_dict(checkpoint['target_network_state_dict'])
+        self.q_network.eval()
+        self.target_network.eval()
+        print(f"Weights loaded from {filepath}")
+
+
 
 class REINFORCEAgent(GenericNNAgent):
     def __init__(self, env, agent_type="Deep", use_spiking_nn=True, **kwargs):
@@ -115,6 +131,17 @@ class REINFORCEAgent(GenericNNAgent):
         self.log_probs.clear()
         self.rewards.clear()
 
+    def save_weights(self, filepath):
+        torch.save({
+            'network_state_dict': self.network.state_dict(),
+        }, filepath)
+        print(f"Weights saved to {filepath}")
+
+    def load_weights(self, filepath):
+        checkpoint = torch.load(filepath)
+        self.network.load_state_dict(checkpoint['network_state_dict'])
+        self.network.eval()
+        print(f"Weights loaded from {filepath}")
 
 class ActorCriticAgent(GenericNNAgent):
     def __init__(self, env, agent_type="Deep", use_spiking_nn=True, lr_actor=0.001, lr_critic=0.005):
@@ -168,3 +195,18 @@ class ActorCriticAgent(GenericNNAgent):
         self.optimizer_actor.zero_grad()
         actor_loss.backward()
         self.optimizer_actor.step()
+
+    def save_weights(self, filepath):
+        torch.save({
+            'actor_state_dict': self.actor.state_dict(),
+            'critic_state_dict': self.critic.state_dict(),
+        }, filepath)
+        print(f"Weights saved to {filepath}")
+
+    def load_weights(self, filepath):
+        checkpoint = torch.load(filepath)
+        self.actor.load_state_dict(checkpoint['actor_state_dict'])
+        self.critic.load_state_dict(checkpoint['critic_state_dict'])
+        self.actor.eval()
+        self.critic.eval()
+        print(f"Weights loaded from {filepath}")
