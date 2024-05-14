@@ -85,7 +85,8 @@ class DQNAgent:
 
 class REINFORCEAgent(GenericNNAgent):
     def __init__(self, env, agent_type="Deep", use_spiking_nn=True, hidden_layers=None, lr=0.001, gamma=0.99):
-            super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn)
+            super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, learning_rate=learning_rate,
+                         gamma=gamma)
 
             self.gamma = gamma
             self.hidden_layers = hidden_layers if hidden_layers is not None else [128, 128]
@@ -154,10 +155,12 @@ class REINFORCEAgent(GenericNNAgent):
 
 
 class ActorCriticAgent(GenericNNAgent):
-    def __init__(self, env, use_spiking_nn=True, hidden_layers=None, learning_rate=0.001, gamma=0.99):
-            super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers,
-                             learning_rate=learning_rate, gamma=gamma)
-
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, hidden_layers=None, learning_rate=0.001,
+                 gamma=0.99):
+            super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, learning_rate=learning_rate,
+                         gamma=gamma)
+            self.state_size = env.state_size
+            self.action_size = env.action_size
             self.gamma = gamma
             self.hidden_layers = hidden_layers if hidden_layers is not None else [128, 128]
             self.learning_rate = learning_rate
