@@ -3,7 +3,6 @@ class RunConfig:
         self.config = self.load_config()
 
     def load_config(self):
-        # Configuration dictionary directly included in the class
         return {
             "environment": {
                 "name": "prisoners_dilemma"
@@ -30,11 +29,16 @@ class RunConfig:
             }
         }
 
-    def get_environment_config(self):
-        return self.config.get('environment', {})
+    def get_environment_name(self):
+        return self.config.get('environment', {}).get('name', 'default_environment')
 
-    def get_agent_config(self, agent_key):
-        return self.config.get('agents', {}).get(agent_key, {})
+    def get_agent_details(self, agent_key):
+        # Returns the agent type, name, and parameters as a tuple
+        agent_info = self.config.get('agents', {}).get(agent_key, {})
+        return (agent_info.get('type', 'Unknown'), agent_info.get('name', 'Unknown'), agent_info.get('parameters', {}))
 
-    def get_experiment_config(self):
-        return self.config.get('experiment', {})
+    def get_save_directory(self):
+        return self.config.get('experiment', {}).get('save_directory', 'weights')
+
+    def use_predefined_weights(self):
+        return self.config.get('experiment', {}).get('use_predefined_weights_id', False)

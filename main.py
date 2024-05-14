@@ -15,7 +15,7 @@ from ExperimentManager import ExperimentManager
 from agents.AgentsConfig import agent_types
 import os
 import os
-
+from RunConfig import RunConfig
 def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_weights=False, base_directory=None,
                  experiment_id=None, hidden_layers=None, learning_rate=0.01, gamma=0.99):
     # Retrieve the class for the agent
@@ -37,7 +37,7 @@ def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_w
     else:
         return agent_class(env)
 
-
+"""""
 env = CustomEnv("prisoners_dilemma")
 load_weights_flag = False
 use_predefined_weights_id = False  # Boolean flag to choose weights directory
@@ -48,12 +48,38 @@ agent_type2 = "Deep"
 agent_name2 = "ActorCriticAgent"
 save_directory="weights"
 experiment_id = f"experiment_{agent_name1}_{agent_name2}"
+"""""
+config = RunConfig()
+
+# Setup environment
+environment_name = config.get_environment_name()
+env = CustomEnv(environment_name)
+
+# Retrieve agent configurations and experiment details
+agent_type1, agent_name1, agent_params1 = config.get_agent_details('agent1')
+agent_type2, agent_name2, agent_params2 = config.get_agent_details('agent2')
+save_directory = config.get_save_directory()
+use_predefined_weights = config.use_predefined_weights()
+
+# Construct the experiment ID and prepare for managing weights
+experiment_id = f"experiment_{agent_name1}_{agent_name2}"
+weights_dir = os.path.join(save_directory, experiment_id)
+load_weights_flag = False
+# If using predefined weights, adjust the experiment ID or weights directory as necessary
+if use_predefined_weights:
+    experiment_id += "_predefined"
+    weights_dir = os.path.join(save_directory, experiment_id)
+    load_weights_flag = True
+
+# Create agents using the extracted configurations
+agent1 = create_agent(env, agent_type1, agent_name1, **agent_params1)
+agent2 = create_agent(env, agent_type2, agent_name2, **agent_params2)
 experiment_manager = ExperimentManager()
 experiment_number = experiment_manager.get_next_experiment_number(experiment_id)
 experiment_number = f"experiment_{experiment_number}"
 print("experiment number",experiment_number)
 # Generate experiment_id based on known agent types or other details
-if use_predefined_weights_id:
+if use_predefined_weights:
      experiment_id_loading= f"experiment_UnconditionalCooperator_DQNAgent"
 else:
     experiment_id_loading= experiment_id
@@ -76,7 +102,7 @@ elif algorithm_type == "SINGLE AGENT":
     gamma = 0.99
     agent1 = create_agent(env, agent_type1, agent_name1, base_directory=save_directory,
                           experiment_id=experiment_id_loading)
-    agent2 = create_agent(env, agent_type2, agent_name2, use_spiking_nn=False, load_saved_weights=False,
+    agent2 = create_agent(env, agent_type2, agent_name2, use_spiking_nn=False, load_saved_weights=load_weights_flag,
                           base_directory=save_directory, experiment_id=experiment_id_loading,
                           hidden_layers=hidden_layers, learning_rate=learning_rate, gamma=gamma)
     initial_state1 = env.get_initial_state_for_agent(agent1)

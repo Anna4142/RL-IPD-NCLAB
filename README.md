@@ -167,7 +167,7 @@ class RunConfig:
         agent1_name = self.get_agent_config('agent1').get('name', 'Agent1')
         agent2_name = self.get_agent_config('agent2').get('name', 'Agent2')
         return f"experiment_{agent1_name}_{agent2_name}"
-
+```
 #### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
