@@ -1,7 +1,7 @@
 import os
 import json
 import matplotlib.pyplot as plt
-
+import numpy as np
 class BaseMetric:
     def __init__(self, data_buffer):
         self.data_buffer = data_buffer
@@ -16,6 +16,8 @@ class BaseMetric:
 
     def reset(self):
         raise NotImplementedError("The reset method must be implemented by the subclass.")
+
+
 
     def get_next_experiment_number(self,experiment_id):
         base_directory = "Episodes"
@@ -46,6 +48,8 @@ class BaseMetric:
 
         # Assuming the metric data can be serialized to JSON
         data_to_save = self.get_metrics()
+
+
         with open(data_filepath, "w") as file:
             json.dump(data_to_save, file)
         print(f"Saved {filename} to {data_filepath}")

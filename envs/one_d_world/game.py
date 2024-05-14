@@ -2,6 +2,7 @@ from sys import stdout
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
+
 from numpy.random import randint
 import matplotlib.pyplot as plt
 from envs.GameConfig import GameConfig
@@ -43,7 +44,8 @@ class CustomEnv(gym.Env):
         self.current_round = 0
         self.done = False
         self.history = [(-1, -1) for _ in range(self.history_length)]
-        self.state_size = 2 ** self.history_length  # Define this method if it isn't already
+        self.state_size = 4** self.history_length  # Define this method if it isn't already
+
 
     def calculate_observation_size(self):
         if self.obs_type == 'both':
@@ -57,15 +59,7 @@ class CustomEnv(gym.Env):
         self.history = [(-1, -1) for _ in range(self.history_length)]
         return self.get_observation()
 
-    def step(self, actions):
-        if not isinstance(actions, (tuple, list)) or len(actions) != 2:
-            raise ValueError("Actions must be a tuple or list with two elements.")
-        self.update_history(actions[0], actions[1])
-        self.current_round += 1
-        if self.current_round >= self.rounds:
-            self.done = True
-        rewards = self.payout_matrix[actions[0]][actions[1]]
-        return self.get_observation(), rewards, self.done, {}
+
 
     def update_history(self, action1, action2):
         if len(self.history) >= self.history_length:
@@ -90,7 +84,7 @@ class CustomEnv(gym.Env):
         return state
 
     def calculate_state_size(self):
-        return 4 ** self.history_length  # For binary actions and pairs of actions in history
+        return 2 ** self.history_length  # For binary actions and pairs of actions in history
 
     def reset(self):
         """
@@ -117,41 +111,69 @@ class CustomEnv(gym.Env):
             state.extend([action1, action2])
         return np.array(state, dtype=np.float32)
 
-    def step(self, actions):
+    def step(self, actions, agent1, agent2):
         """
-            Takes a tuple of actions for both players and returns the new observation, reward, done flag, and any additional information.
-            """
-        if not isinstance(actions, (tuple, list)) or len(actions) != 2:
-                raise ValueError("actions should be a tuple or list with two elements.")
-
+        Executes a step using actions from both players, checks agent types to determine state representation,
+        and returns the tailored state representations and game outcomes.
+        """
         p1_action, p2_action = actions
-        self.player1_action = p1_action
-        self.player2_action = p2_action
-        self.update_history(self.player1_action, self.player2_action)
-        if p1_action not in self.action_space or p2_action not in self.action_space:
-            # Handle invalid action; for example, default to COOPERATE or DEFECT
-            p1_action, p2_action = 0,0  # or some other default action
 
+        # Validate actions
+        if p1_action not in [COOPERATE, DEFECT] or p2_action not in [COOPERATE, DEFECT]:
+            p1_action, p2_action = COOPERATE, COOPERATE
 
-
-        # Calculate the payouts
+        # Update game state based on actions
+        self.update_history(p1_action, p2_action)
         p1_payout, p2_payout = self.payout_matrix[p1_action][p2_action]
-
-        #print(self.payout_matrix[p1_action][p2_action])
-        # Increment the current round and check if the game is done
         self.current_round += 1
-        if self.current_round >= self.rounds:
-            self.done = True
-        self.observation_space=(p2_action, p1_action)
-        self.state_space=list(self.association.keys())[list(self.association.values()).index((p1_action, p2_action))]
-        # Convert updated history to state representation and return step information
-        state = self.history_to_state()
-        # Return the new observation, state,reward, done flag, and any additional information
-        #return self.observation_space,(p1_action, p2_action) , (p1_payout, p2_payout), {}
-        return state,(p1_action, p2_action) , (p1_payout, p2_payout), {}
+        self.done = self.current_round >= self.rounds
+
+        # Determine state representation based on agent type
+        state_for_agent1 = self.get_one_hot_state() if agent1.agent_type == "Deep" else self.get_state_index()
+        state_for_agent2 = self.get_one_hot_state() if agent2.agent_type == "Deep" else self.get_state_index()
+
+        print("State for Agent 1:", state_for_agent1)
+        print("State for Agent 2:", state_for_agent2)
+
+        # Return states and game outcomes
+        return (state_for_agent1, state_for_agent2), (p1_action, p2_action), (p1_payout, p2_payout), {}
 
     def print_ep(obs, reward, done, info):
         print({"history": obs, "reward": reward, "simulation over": done, "info": info})
+
+    def get_one_hot_state(self):
+        """Return a one-hot encoded representation of the state based on the entire history."""
+        state_size = 2 ** (2 * self.history_length)  # Calculate total number of possible states
+        index = 0
+        multiplier = 1
+        for action1, action2 in reversed(self.history):
+            state_index = (action1 * 2) + action2  # Convert actions into a single index
+            index += state_index * multiplier
+            multiplier *= 4  # Increase multiplier as we go back in time
+
+        # Create a one-hot encoded vector
+        one_hot_state = np.zeros(state_size, dtype=np.float32)
+        one_hot_state[index] = 1.0
+        return one_hot_state
+
+    def get_state_index(self):
+        """Calculate the unique integer index for the current state."""
+        index = 0
+        multiplier = 1
+        for action1, action2 in reversed(self.history):
+            state_index = (action1 * 2) + action2  # Convert actions into a single index
+            index += state_index * multiplier
+            multiplier *= 4  # Increase multiplier as we go back in time
+        return index
+
+    def get_initial_state_for_agent(self, agent):
+        """Generate initial state based on the agent type."""
+        if agent.agent_type == "Deep":
+            # For deep agents, initialize a zero vector or some normalized vector
+            return np.zeros(self.state_size, dtype=np.float32)
+        else:
+            # For fixed or vanilla agents, use an integer index or similar simple format
+            return 0  # or self.calculate_initial_state_index()
     def render(self, mode='human', pos=None, close=False):
             """
             Renders the current state of the game to the screen.
