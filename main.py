@@ -17,26 +17,26 @@ import os
 import os
 
 def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_weights=False, base_directory=None,
-                     experiment_id=None):
+                 experiment_id=None, hidden_layers=None, learning_rate=0.01, gamma=0.99):
     # Retrieve the class for the agent
     agent_class = agent_types[agent_type][agent_name]
 
-
     # Check if the agent type is 'Deep', and initialize accordingly
     if agent_type == "Deep":
-        agent = agent_class(env, use_spiking_nn=use_spiking_nn)
+        agent = agent_class(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, learning_rate=learning_rate, gamma=gamma)
         if load_saved_weights:
-            weights_path = os.path.join(base_directory,experiment_id)
-            print("weights loaded from",weights_path)
+            weights_path = os.path.join(base_directory, experiment_id)
+            print("weights loaded from", weights_path)
 
             if os.path.exists(weights_path):
                 agent.load_weights(weights_path)
-            return agent_class(env, use_spiking_nn=use_spiking_nn)
+            return agent
         else:
             print(f"No weights loaded for {agent_name}, starting from scratch or no weights found.")
-            return agent_class(env, use_spiking_nn=use_spiking_nn)
+            return agent
     else:
         return agent_class(env)
+
 
 env = CustomEnv("prisoners_dilemma")
 load_weights_flag = False
@@ -71,10 +71,14 @@ if algorithm_type == "MULTI AGENT":
     agent_names = f"{agent.__class__.__name__}"
 elif algorithm_type == "SINGLE AGENT":
     ###TEMPORARY SOLUTION
-
-    agent1 = create_agent(env, agent_type1, agent_name1, base_directory=save_directory, experiment_id=experiment_id_loading)
+    hidden_layers = [256, 256]
+    learning_rate = 0.001
+    gamma = 0.99
+    agent1 = create_agent(env, agent_type1, agent_name1, base_directory=save_directory,
+                          experiment_id=experiment_id_loading)
     agent2 = create_agent(env, agent_type2, agent_name2, use_spiking_nn=False, load_saved_weights=False,
-                          base_directory=save_directory, experiment_id=experiment_id_loading)
+                          base_directory=save_directory, experiment_id=experiment_id_loading,
+                          hidden_layers=hidden_layers, learning_rate=learning_rate, gamma=gamma)
     initial_state1 = env.get_initial_state_for_agent(agent1)
     initial_state2 = env.get_initial_state_for_agent(agent2)
     state = (initial_state1,initial_state2)

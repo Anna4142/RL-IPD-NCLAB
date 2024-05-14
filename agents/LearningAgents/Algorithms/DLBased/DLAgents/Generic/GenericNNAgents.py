@@ -8,32 +8,33 @@ from agents.LearningAgents.Algorithms.DLBased.utils.replay import ReplayBuffer, 
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.BaseGenericNN import GenericNNAgent
 from agents.LearningAgents.Algorithms.DLBased.Networks.SpikingNN import FullyConnectedSNN
 
+
 class DQNAgent:
-    def __init__(self, env, use_spiking_nn, agent_type="Deep"):
-
-
-
-        self.buffer_capacity = 10000
+    def __init__(self, env, use_spiking_nn, hidden_layers=None, lr=0.001, gamma=0.99):
         self.env = env
         self.state_size = env.state_size
         self.action_size = env.action_size
-        self.agent_type = agent_type
-        hidden_layers = env.hidden_layers if hasattr(env, 'hidden_layers') else [128, 128]
-        if use_spiking_nn:
-            self.q_network = FullyConnectedSNN([self.state_size] + hidden_layers + [self.action_size])
-            self.target_network = FullyConnectedSNN([self.state_size] + hidden_layers + [self.action_size])
-        else:
-            self.q_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
-            self.target_network = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
-        self.target_network.load_state_dict(self.q_network.state_dict())
-        self.target_network.eval()
-        self.replay_buffer = ReplayBuffer(capacity=self.buffer_capacity)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.001)
-        self.gamma = 0.99
+        self.agent_type = "Deep"
+
+        self.hidden_layers = hidden_layers if hidden_layers is not None else [128, 128]
+        self.buffer_capacity = 10000
+        self.gamma = gamma
         self.epsilon = 1.0
         self.epsilon_decay = 0.995
         self.epsilon_min = 0.01
         self.batch_size = 64
+
+        if use_spiking_nn:
+            self.q_network = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+            self.target_network = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+        else:
+            self.q_network = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
+            self.target_network = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
+
+        self.target_network.load_state_dict(self.q_network.state_dict())
+        self.target_network.eval()
+        self.replay_buffer = ReplayBuffer(capacity=self.buffer_capacity)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
 
     def decide_action(self, state):
         if random.random() < self.epsilon:
@@ -82,14 +83,23 @@ class DQNAgent:
         self.target_network.eval()
         print(f"Weights loaded from {filepath}")
 
-
-
 class REINFORCEAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, **kwargs):
-        super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn, **kwargs)
-        self.log_probs = []
-        self.rewards = []
-        self.gamma=0.9
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, hidden_layers=None, lr=0.001, gamma=0.99):
+            super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, learning_rate=learning_rate,
+                         gamma=gamma)
+
+            self.gamma = gamma
+            self.hidden_layers = hidden_layers if hidden_layers is not None else [128, 128]
+
+            self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
+            self.log_probs = []
+            self.rewards = []
+
+            if self.use_spiking_nn:
+                print("Using spiking neural network.")
+                self.network = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+            else:
+                self.network = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
 
     def decide_action(self, state):
         state_tensor = torch.tensor([state], dtype=torch.float32)
@@ -143,24 +153,34 @@ class REINFORCEAgent(GenericNNAgent):
         self.network.eval()
         print(f"Weights loaded from {filepath}")
 
+
 class ActorCriticAgent(GenericNNAgent):
-    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, lr_actor=0.001, lr_critic=0.005):
-        super().__init__(env, agent_type=agent_type, use_spiking_nn=use_spiking_nn)
+    def __init__(self, env, agent_type="Deep", use_spiking_nn=True, hidden_layers=None, learning_rate=0.001,
+                 gamma=0.99):
+            super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, learning_rate=learning_rate,
+                         gamma=gamma)
+            self.state_size = env.state_size
+            self.action_size = env.action_size
+            self.gamma = gamma
+            self.hidden_layers = hidden_layers if hidden_layers is not None else [128, 128]
+            self.learning_rate = learning_rate
 
-        self.state_size = env.state_size
-        self.action_size = env.action_size
-        hidden_layers = env.hidden_layers if hasattr(env, 'hidden_layers') else [128, 128]
+            # Actor Network
+            if self.use_spiking_nn:
+                print("Using spiking neural network for actor.")
+                self.actor = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+            else:
+                self.actor = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
+            self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=self.learning_rate)
 
-        # Actor Network
-        self.actor = FullyConnected([self.state_size] + hidden_layers + [self.action_size])
-        self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=lr_actor)
+            # Critic Network
+            if self.use_spiking_nn:
+                print("Using spiking neural network for critic.")
+                self.critic = FullyConnectedSNN([self.state_size] + self.hidden_layers + [1])
+            else:
+                self.critic = FullyConnected([self.state_size] + self.hidden_layers + [1])
+            self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=self.learning_rate)
 
-        # Critic Network
-        self.critic = FullyConnected([self.state_size] + hidden_layers + [1])
-        self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=lr_critic)
-
-        self.gamma = 0.99
-        self.current_log_prob=0
     def decide_action(self, state):
         state_tensor = torch.tensor([state], dtype=torch.float32)
         logits = self.actor(state_tensor)
@@ -176,11 +196,10 @@ class ActorCriticAgent(GenericNNAgent):
         reward = torch.tensor([reward], dtype=torch.float32)
         done = torch.tensor([done], dtype=torch.float32)
 
-
         # Critic update
         value = self.critic(state)
         next_value = self.critic(next_state).detach()
-        td_target = reward + 0.99 * next_value * (1 - done)
+        td_target = reward + self.gamma * next_value * (1 - done)
         td_error = td_target - value
         loss_critic = td_error.pow(2).mean()
         self.optimizer_critic.zero_grad()
