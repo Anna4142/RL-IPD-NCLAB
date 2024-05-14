@@ -8,11 +8,18 @@
 
 The project is organized into several key components:
 
+## Project Structure
+
+The project is organized into several key components:
+
 - **Buffer**: Contains the implementation of the replay buffer used in reinforcement learning algorithms.
 - **Evaluation**: Scripts and tools for evaluating the performance and strategy effectiveness of RL agents.
 - **Agents**: The directory hosts various RL agent implementations that compete or cooperate in the IPD.
 - **Envs**: Custom environments for the Iterated Prisoner's Dilemma, tailored for reinforcement learning experiments.
-- **Results**-Currently contains percentage of each choice after running 200 episode experiments of all fixed agents againts all vanilla value based agents
+- **Results**: Currently contains the percentage of each choice after running 200 episode experiments of all fixed agents against all vanilla value-based agents.
+- **GameConfig**: Located in the `envs/` directory, this component manages game settings such as payoff matrices, rounds, and environmental variables, allowing for flexible and dynamic setups tailored to specific experimental needs.
+- **AgentsConfig**: Found in the `agents/` directory, it defines and manages different types of reinforcement learning agents, facilitating the setup and execution of agent-based experiments.
+- **RunConfig**: Configures execution settings and manages environment and agent setups within the project, ensuring that experiments are reproducible and customizable.
 - **main.py**: The main script to kick off training sessions or experiments.
 - **run.py**: A utility script for executing specific models or tests within the project framework.
 
@@ -101,6 +108,66 @@ q_learning_agent = agent_types['Vanilla']['QLearningAgent'](env)
 # Create a fixed strategy agent (TitForTat)
 tit_for_tat_agent = agent_types['Fixed']['TitForTat'](env)
 ```
+## RunConfig
+
+The `RunConfig` class plays a crucial role in configuring the execution settings for experiments within the RL-IPD-NCLAB project. It facilitates the management of environment and agent configurations, ensuring that experiments are reproducible and customizable.
+
+### Implementation
+
+```python
+class RunConfig:
+    def __init__(self):
+        self.config = self.load_config()
+
+    def load_config(self):
+        # Configuration dictionary directly included in the class
+        return {
+            "environment": {
+                "name": "prisoners_dilemma"
+            },
+            "agents": {
+                "agent1": {
+                    "type": "Fixed",
+                    "name": "TitForTat"
+                },
+                "agent2": {
+                    "type": "Deep",
+                    "name": "ActorCriticAgent",
+                    "parameters": {
+                        "use_spiking_nn": False,
+                        "hidden_layers": [256, 256],
+                        "learning_rate": 0.001,
+                        "gamma": 0.99
+                    }
+                }
+            },
+            "experiment": {
+                "save_directory": "weights",
+                "use_predefined_weights_id": False
+            },
+            "settings": {
+                "load_weights_flag": False,
+                "use_predefined_weights_id": False
+            }
+        }
+
+    def get_environment_config(self):
+        return self.config.get('environment', {})
+
+    def get_agent_config(self, agent_key):
+        return self.config.get('agents', {}).get(agent_key, {})
+
+    def get_experiment_config(self):
+        return self.config.get('experiment', {})
+
+    def get_settings(self):
+        return self.config.get('settings', {})
+
+    def get_experiment_id(self):
+        agent1_name = self.get_agent_config('agent1').get('name', 'Agent1')
+        agent2_name = self.get_agent_config('agent2').get('name', 'Agent2')
+        return f"experiment_{agent1_name}_{agent2_name}"
+
 #### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
