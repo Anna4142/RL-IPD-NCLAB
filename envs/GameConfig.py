@@ -2,14 +2,14 @@ class GameConfig:
     def __init__(self, T, S, P, R):
         self.games = {
             "prisoners_dilemma": {
-                "rounds": 1000,
+                "rounds": 100,
                 "payout_matrix": [
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
                 "algorithm_type": "SINGLE AGENT",
-                "memory": 5,  # Number of past rounds to remember
-                "history_length": 5,  # Number of past actions to keep in history
+                "memory": 3,  # Number of past rounds to remember
+                "history_length": 3,  # Number of past actions to keep in history
                 "obs_type": "both"  # Type of observation data to include-can be self other or both
             },
             "stag_hunt": {
@@ -56,3 +56,10 @@ class GameConfig:
         else:
             print(f"Game '{game_name}' not found.")
             return None
+    def update_memory_and_history(self, game_name, new_memory, new_history_length):
+        if game_name in self.games:
+            self.games[game_name]['memory'] = new_memory
+            self.games[game_name]['history_length'] = new_history_length
+            print(f"Updated {game_name}: Memory to {new_memory}, History Length to {new_history_length}")
+        else:
+            print(f"Game '{game_name}' not found.")

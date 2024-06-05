@@ -2,7 +2,7 @@ from sys import stdout
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
-
+import itertools
 from numpy.random import randint
 import matplotlib.pyplot as plt
 from envs.GameConfig import GameConfig
@@ -33,6 +33,7 @@ class CustomEnv(gym.Env):
         self.player2_action = None
 
 
+
         self.action_space = Discrete(2)  # Assuming 2 actions: Cooperate or Defect
         self.action_size = self.action_space.n
 
@@ -44,8 +45,26 @@ class CustomEnv(gym.Env):
         self.current_round = 0
         self.done = False
         self.history = [(-1, -1) for _ in range(self.history_length)]
-        self.state_size = 4** self.history_length  # Define this method if it isn't already
+        self.state_size = 2 ** (2 * self.history_length)  # Define this method if it isn't already
+        #(player1_round1, player2_round1, player1_round2, player2_round2)
 
+
+    def initialize_cooperation_counts(self):
+            # Generate all possible states based on the history length
+            possible_actions = ['C', 'D']  # Define cooperation and defection actions
+            combinations = itertools.product(possible_actions, repeat=2 * self.history_length)
+            # Initialize counts for each possible state
+            for combination in combinations:
+                state_key = ''.join(combination)
+                self.cooperation_counts[state_key] = 0
+
+    def update_cooperation_counts(self, state_key, action):
+            if action == COOPERATE:
+                self.cooperation_counts[state_key] += 1
+    def generate_possible_states(self, memory_length):
+        actions = ['C', 'D']
+        all_combinations = itertools.product(actions, repeat=memory_length)
+        return [''.join(comb) for comb in all_combinations]
 
     def calculate_observation_size(self):
         if self.obs_type == 'both':
@@ -142,6 +161,7 @@ class CustomEnv(gym.Env):
             state_for_agent2 = self.get_one_hot_state()
         else:
             state_for_agent2 = self.get_state_index()
+            # Update cooperation count for the current state
 
         print("State for Agent 1:", state_for_agent1)
         print("State for Agent 2:", state_for_agent2)

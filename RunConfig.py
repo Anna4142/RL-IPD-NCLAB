@@ -10,11 +10,12 @@ class RunConfig:
             "agents": {
                 "agent1": {
                     "type": "Fixed",
-                    "name": "TitForTat"
+                    "name": "TitForTat",
+                    "parameters": {}
                 },
                 "agent2": {
                     "type": "Deep",
-                    "name": "ActorCriticAgent",
+                    "name": "DQNAgent",
                     "parameters": {
                         "use_spiking_nn": False,
                         "hidden_layers": [256, 256],
@@ -25,7 +26,7 @@ class RunConfig:
             },
             "experiment": {
                 "save_directory": "weights",
-                "use_predefined_weights_id": False
+                "use_predefined_weights": False
             }
         }
 
