@@ -72,6 +72,7 @@ class DQNAgent:
 
             return action
 
+
     def learn(self, state, action, reward, next_state, done):
         state = np.array(state)  # Convert list of numpy arrays to a single numpy array
 
@@ -87,28 +88,7 @@ class DQNAgent:
 
         loss = F.mse_loss(current_q_values, expected_q_values)
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
-    def learn(self, state, action, reward, next_state, done):
-        state = np.array(state)  # Convert list of numpy arrays to a single numpy array
-
-        state = torch.tensor([state], dtype=torch.float32)
-        action = torch.tensor([action], dtype=torch.long)
-        reward = torch.tensor([reward], dtype=torch.float32)
-        next_state = torch.tensor([next_state], dtype=torch.float32)
-        done = torch.tensor([done], dtype=torch.float32)
-        print("op of spiking qn",self.q_network(state))
-        current_q_values = self.q_network(state).gather(1, action.unsqueeze(-1)).squeeze(-1)
-        next_q_values = self.target_network(next_state).max(1)[0].detach()
-        expected_q_values = reward + self.gamma * next_q_values * (1 - done)
-
-        loss = F.mse_loss(current_q_values, expected_q_values)
-        self.optimizer.zero_grad()
-        #loss.backward(retain_graph=True)
+        loss.backward(retain_graph=True)
 
         self.optimizer.step()
 
@@ -241,7 +221,7 @@ class ActorCriticAgent(GenericNNAgent):
         self.current_step = 0
         self.forced_actions = []
         self.expected_actions = []
-        self.optimizer = optim.Adam(self.network.parameters(), lr=learning_rate)
+
         self.log_probs = []
         self.rewards = []
 
@@ -262,20 +242,20 @@ class ActorCriticAgent(GenericNNAgent):
                 action = self.mouse_hist[self.current_step]
                 self.forced_actions.append(action)
                 state_tensor = torch.tensor([state], dtype=torch.float32)
-                logits = self.network(state_tensor)
+                logits = self.actor(state_tensor)
                 action_probs = F.softmax(logits, dim=-1)
                 distribution = torch.distributions.Categorical(action_probs)
                 action = distribution.sample()
-                self.log_probs.append(distribution.log_prob(action))
+                self.current_log_prob = distribution.log_prob(action)  # Store log_prob internally
                 self.expected_actions.append(action.item())  # Track expected action regardless of decision source
                 self.current_step += 1
             else:
                 state_tensor = torch.tensor([state], dtype=torch.float32)
-                logits = self.network(state_tensor)
+                logits = self.actor(state_tensor)
                 action_probs = F.softmax(logits, dim=-1)
                 distribution = torch.distributions.Categorical(action_probs)
                 action = distribution.sample()
-                self.log_probs.append(distribution.log_prob(action))
+                self.current_log_prob = distribution.log_prob(action)  # Store log_prob internally
                 self.expected_actions.append(action.item())  # Track expected action regardless of decision source
 
             return action.item()
@@ -293,15 +273,16 @@ class ActorCriticAgent(GenericNNAgent):
         td_error = td_target - value
         loss_critic = td_error.pow(2).mean()
         self.optimizer_critic.zero_grad()
-        loss_critic.backward(retain_graph=True)
-        self.optimizer_critic.step()
+        loss_critic.backward()
+        #self.optimizer_critic.step()
 
-        log_prob = self.log_probs[-1]  # Retrieve the stored log_prob
+        # Retrieve the stored log_prob
+        log_prob = self.current_log_prob
 
         # Actor loss
         actor_loss = (-log_prob * td_error.detach()).mean()  # Ensure it's a scalar
         self.optimizer_actor.zero_grad()
-        actor_loss.backward(retain_graph=True)
+        actor_loss.backward()
         self.optimizer_actor.step()
 
     def save_weights(self, filepath):
@@ -317,4 +298,165 @@ class ActorCriticAgent(GenericNNAgent):
         self.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.actor.eval()
         self.critic.eval()
+        print(f"Weights loaded from {filepath}")
+
+
+
+class TOMActorCriticAgent(GenericNNAgent):
+    def __init__(self, env, use_spiking_nn=True, hidden_layers=None, agent_type="Deep", learning_rate=0.01, gamma=0.99, use_mouse_hist=False, mouse_hist=None):
+        super().__init__(env, use_spiking_nn=use_spiking_nn, hidden_layers=hidden_layers, agent_type=agent_type,
+                         learning_rate=learning_rate, gamma=gamma)
+        self.gamma = gamma
+        self.use_mouse_hist = use_mouse_hist
+        self.mouse_hist = mouse_hist if mouse_hist is not None else []
+        self.current_step = 0
+        self.forced_actions = []
+        self.expected_actions = []
+        self.optimizer = optim.Adam(self.network.parameters(), lr=learning_rate)
+        self.log_probs = []
+        self.rewards = []
+        self.current_log_prob = None
+
+
+        # TOM Actor and Critic Networks
+        if use_spiking_nn:
+            print("Using spiking neural network for both actor and critic.")
+            self.self_critic = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+            self.other_critic = FullyConnectedSNN([self.state_size] + self.hidden_layers + [self.action_size])
+            self.actor = FullyConnectedSNN([self.state_size + self.state_size] + self.hidden_layers + [self.action_size])
+        else:
+            self.self_critic = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
+            self.other_critic = FullyConnected([self.state_size] + self.hidden_layers + [self.action_size])
+            self.actor = FullyConnected([self.state_size + self.state_size] + self.hidden_layers + [self.action_size])
+
+        self.optimizer_self_critic = optim.Adam(self.self_critic.parameters(), lr=learning_rate)
+        self.optimizer_other_critic = optim.Adam(self.other_critic.parameters(), lr=learning_rate)
+        self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=learning_rate)
+
+    def one_hot_encode_action(self, action_index, action_space_size):
+        """
+        Encodes an action index into a one-hot vector.
+
+        Parameters:
+            action_index (int): The index of the action to encode.
+            action_space_size (int): Total number of possible actions.
+
+        Returns:
+            torch.Tensor: A one-hot encoded tensor representing the action.
+        """
+        # Create a zero-filled numpy array with length equal to the number of actions
+        one_hot_vector = np.zeros(action_space_size, dtype=np.float32)
+
+        # Set the position corresponding to the action index to 1
+        one_hot_vector[action_index] = 1
+
+        # Convert the numpy array to a torch tensor
+        return one_hot_vector
+    def decide_action(self, state, state_others):
+        # Convert states to tensors
+        state_tensor = torch.tensor([state], dtype=torch.float32)
+
+
+        state_others_tensor = torch.tensor([state_others], dtype=torch.float32)
+
+        # Combine state tensors for input to the neural network
+        combined_state = torch.cat([state_tensor, state_others_tensor], dim=-1)
+
+        # Pass the combined state through the actor network to get logits
+        logits = self.actor(combined_state)
+        action_probs = F.softmax(logits, dim=-1)
+        distribution = torch.distributions.Categorical(action_probs)
+
+        if self.use_mouse_hist and self.current_step < len(self.mouse_hist):
+            # Forced action from historical mouse data
+            action = self.mouse_hist[self.current_step]
+            # Compute log probability for the forced action
+            # It's crucial that the forced action is within the range of possible actions as per the distribution
+            self.current_log_prob = distribution.log_prob(torch.tensor([action]))  # Ensure this is a tensor
+        else:
+            # Sample an action according to the policy distribution
+            action = distribution.sample()
+            # Store the log probability of the sampled action
+            self.current_log_prob = distribution.log_prob(action)
+
+        # Append log probability and the chosen action to their respective lists for tracking
+        self.log_probs.append(self.current_log_prob)
+        self.expected_actions.append(action.item())  # Record the action as an integer
+        self.current_step += 1  # Increment the step counter
+
+        return action.item()
+
+    def learn(self, state, state_others, action, reward, next_state, next_state_others, done):
+        state = torch.tensor([state], dtype=torch.float32)
+        action_space_size=len(state)
+
+
+
+        state_others = torch.tensor([state_others], dtype=torch.float32)
+        next_state = torch.tensor([next_state], dtype=torch.float32)
+
+        next_state_others= torch.tensor([next_state_others], dtype=torch.float32)
+        reward = torch.tensor([reward], dtype=torch.float32)
+        print("Shape of state_tensor:", state.shape)
+        print("Shape of state_others_tensor:", state_others.shape)
+
+        done = torch.tensor([done], dtype=torch.float32)
+
+
+        # Self Critic update
+
+        self_value = self.self_critic(state)
+        next_self_value = self.self_critic(next_state)
+
+        self_td_target = reward + self.gamma * next_self_value * (1 - done)
+        self_td_error =F.mse_loss(self_td_target, self_value)
+        loss_self_critic = self_td_error
+        self.optimizer_self_critic.zero_grad()
+        loss_self_critic.backward(retain_graph=True)
+        self.optimizer_self_critic.step()
+
+        # Other Critic update
+        other_value = self.other_critic(state_others)
+        next_other_value = self.other_critic(next_state_others).detach()
+        other_td_target = reward + self.gamma * next_other_value * (1 - done)
+        other_td_error = other_td_target - other_value
+        loss_other_critic = other_td_error.pow(2).mean()
+
+        # Internal reward for Other Critic based on matching actions
+        #other_action_probs = F.softmax(other_value, dim=-1)
+        #other_action_dist = torch.distributions.Categorical(other_action_probs)
+        #other_predicted_action = other_action_dist.sample()
+        #internal_reward = torch.tensor([1.0 if other_predicted_action == other_action else -1.0], dtype=torch.float32)
+        #loss_other_critic += (internal_reward.pow(2)).mean()
+
+        self.optimizer_other_critic.zero_grad()
+        loss_other_critic.backward(retain_graph=True)
+        self.optimizer_other_critic.step()
+
+        combined_td_error = self_td_error + other_td_error  # Summing both TD errors for the actor's update
+
+        # Retrieve the stored log_prob
+        log_prob = self.current_log_prob
+
+        # Actor loss using combined TD error
+        actor_loss = (-log_prob * combined_td_error.detach()).mean()  # Ensure it's a scalar
+        self.optimizer_actor.zero_grad()
+        actor_loss.backward()
+        self.optimizer_actor.step()
+    def save_weights(self, filepath):
+        torch.save({
+            'actor_state_dict': self.actor.state_dict(),
+            'self_critic_state_dict': self.self_critic.state_dict(),
+            'other_critic_state_dict': self.other_critic.state_dict(),
+        }, filepath)
+        print(f"Weights saved to {filepath}")
+
+    def load_weights(self, filepath):
+        checkpoint = torch.load(filepath)
+        self.actor.load_state_dict(checkpoint['actor_state_dict'])
+        self.self_critic.load_state_dict(checkpoint['self_critic_state_dict'])
+        self.other_critic.load_state_dict(checkpoint['other_critic_state_dict'])
+        self.actor.eval()
+        self.self_critic.eval()
+        self.other_critic.eval()
         print(f"Weights loaded from {filepath}")

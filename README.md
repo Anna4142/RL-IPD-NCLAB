@@ -120,7 +120,6 @@ class RunConfig:
         self.config = self.load_config()
 
     def load_config(self):
-        # Configuration dictionary directly included in the class
         return {
             "environment": {
                 "name": "prisoners_dilemma"
@@ -137,7 +136,8 @@ class RunConfig:
                         "use_spiking_nn": False,
                         "hidden_layers": [256, 256],
                         "learning_rate": 0.001,
-                        "gamma": 0.99
+                        "gamma": 0.99,
+                        "use_mouse_hist": True
                     }
                 }
             },
@@ -147,27 +147,21 @@ class RunConfig:
             },
             "settings": {
                 "load_weights_flag": False,
-                "use_predefined_weights_id": False
+                "use_predefined_weights_id": False,
+                "use_forced_actions": True  # New parameter added here
             }
         }
-
-    def get_environment_config(self):
-        return self.config.get('environment', {})
-
-    def get_agent_config(self, agent_key):
-        return self.config.get('agents', {}).get(agent_key, {})
-
-    def get_experiment_config(self):
-        return self.config.get('experiment', {})
 
     def get_settings(self):
         return self.config.get('settings', {})
 
-    def get_experiment_id(self):
-        agent1_name = self.get_agent_config('agent1').get('name', 'Agent1')
-        agent2_name = self.get_agent_config('agent2').get('name', 'Agent2')
-        return f"experiment_{agent1_name}_{agent2_name}"
+    def use_forced_actions(self):
+        return self.get_settings().get('use_forced_actions', False)
+
 ```
+##### New Parameter: `use_forced_actions`
+- **Purpose**: This parameter determines whether to enable forced actions based on predefined action histories (`mouse_hist`). When set to `True`, agents will perform actions from a predefined list, which can be useful for testing specific strategies or behaviors.
+- **Default Value**: `False` (Forced actions are disabled by default to allow agents to act based on learned policies unless specified otherwise).
 #### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
