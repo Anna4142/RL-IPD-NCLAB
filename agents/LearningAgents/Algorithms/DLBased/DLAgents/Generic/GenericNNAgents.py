@@ -74,7 +74,7 @@ class DQNAgent:
 
     def learn(self, state, action, reward, next_state, done):
         state = np.array(state)  # Convert list of numpy arrays to a single numpy array
-
+        print(state)
         state = torch.tensor([state], dtype=torch.float32)
         action = torch.tensor([action], dtype=torch.long)
         reward = torch.tensor([reward], dtype=torch.float32)
