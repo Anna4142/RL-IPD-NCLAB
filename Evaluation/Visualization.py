@@ -33,8 +33,8 @@ class MetricsVisualizer:
         self.choice_percentage_metric.update(action1, action2)
         self.choice_percentage_metric.update(action1, action2)
         self.choice_count_metric.update(action1, action2)
-        self.forced_actions_metric.update(action2, mouse_hist_action)
-
+        self.forced_actions_metric.update(action1, mouse_hist_action)
+        print("MOUSR HIST ",mouse_hist_action)
 
     def format_state(self, action1, action2):
         # Converts action numbers to state string, e.g., 0,1 to "CD"

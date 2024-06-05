@@ -1,5 +1,8 @@
-# Import necessary classes and modules
-from envs.one_d_world.game import CustomEnv
+import os
+import json
+import torch
+import numpy as np
+import random
 from agents.FixedAgents.FixedAgents import UnconditionalCooperator, UnconditionalDefector, RandomAgent, \
     Probability25Cooperator, Probability50Cooperator, Probability75Cooperator, TitForTat, SuspiciousTitForTat, \
     GenerousTitForTat, Pavlov, GRIM
@@ -7,17 +10,12 @@ from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaVa
     TDLearningAgent, TDGammaAgent, QLearningAgent
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent, REINFORCEAgent, \
     ActorCriticAgent, TOMActorCriticAgent, SoftActorCriticAgent, A2CAgent, PPOAgent
-import numpy as np
-from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
 from Buffer.DataBuffer import DataBuffer
 from ExperimentManager import ExperimentManager
+from envs.one_d_world.game import CustomEnv
 from agents.AgentsConfig import agent_types
-import os
 from RunConfig import RunConfig
-import json
-import torch
-import random
 from envs.GameConfig import GameConfig
 
 def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_weights=False,
@@ -54,8 +52,8 @@ set_seed(42)
 
 # Define parameter ranges
 hidden_layers_options = [[256], [64], [32]]
-learning_rates = np.logspace(-7, -0.5, num=3)  # 15 values from 1e-07 to 0.3
-gammas = np.linspace(0.5, 0.9999, num=3)  # 15 values from 0.5 to 0.9999
+learning_rates = np.logspace(-7, -0.5, num=3)
+gammas = np.linspace(0.5, 0.9999, num=3)
 config = RunConfig()
 
 # Setup environment
@@ -64,15 +62,14 @@ env = CustomEnv(environment_name)
 
 # Define the list of deep agents
 deep_agents = [
-    "DQNAgent", "REINFORCEAgent","TOMAC",
+    "DQNAgent","TOMAC",
     "A2CAgent", "PPOAgent"
 ]
-
 # Get memory length from GameConfig
-game_config = GameConfig(T=4, S=0, P=1, R=3)  # Adjust parameters as needed
+game_config = GameConfig(T=4, S=0, P=1, R=3)
 env_config = game_config.get_game_config(environment_name)
-memory_length = env_config['memory'] if env_config else 1
-
+#memory_length = env_config['memory'] if env_config else 1
+memory_length=2
 # Loop through each deep agent to run experiments
 for agent_name in deep_agents:
     # Create base save directory based on agent names and memory length
@@ -103,7 +100,6 @@ for agent_name in deep_agents:
 
     experiment_manager = ExperimentManager()
     data_buffer = DataBuffer()
-    algorithm_type = env.algorithm_type
     visualizer = MetricsVisualizer(data_buffer)
 
     # Add outer loop for multiple runs
@@ -156,8 +152,18 @@ for agent_name in deep_agents:
 
                     # Simulation loop
                     for _ in range(env.rounds):
-                        action1 = agent1.decide_action(state[0])
-                        action2 = agent2.decide_action(state[1])
+                        if isinstance(agent1, TOMActorCriticAgent):
+                            state_others = state[1]
+                            action1 = agent1.decide_action(state[0], state_others)
+                        else:
+                            action1 = agent1.decide_action(state[0])
+
+                        if isinstance(agent2, TOMActorCriticAgent):
+                            state_others = state[0]
+                            action2 = agent2.decide_action(state[1], state_others)
+                        else:
+                            action2 = agent2.decide_action(state[1])
+
                         next_state, rewards, done, info = env.step((action1, action2), agent1, agent2)
                         state = next_state
 
@@ -167,13 +173,13 @@ for agent_name in deep_agents:
                             agent2.store_transition(state[1], action1, action2, next_state[1], rewards[1], rewards[1])
 
                         if isinstance(agent1, TOMActorCriticAgent):
-                            state_others = state[1] if "Fixed" not in agent_name else last_state2
+                            state_others = state[1]
                             agent1.learn(state[0], state_others, action1, rewards[0], next_state[0], state[1], done)
                         elif hasattr(agent1, 'learn'):
                             agent1.learn(state[0], action1, rewards[0], next_state[0], done)
 
                         if isinstance(agent2, TOMActorCriticAgent):
-                            state_others = state[0] if "Fixed" not in agent_name else last_state1
+                            state_others = state[0]
                             agent2.learn(state[1], state_others, action2, rewards[1], next_state[1], state[0], done)
                         elif hasattr(agent2, 'learn'):
                             agent2.learn(state[1], action2, rewards[1], next_state[1], done)

@@ -10,7 +10,7 @@ from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaVa
     SARSAgent, TDLearningAgent, TDGammaAgent, QLearningAgent
 )
 
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent, REINFORCEAgent, ActorCriticAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent, REINFORCEAgent,TOMActorCriticAgent, ActorCriticAgent,SoftActorCriticAgent,A2CAgent,ACERAgent,PPOAgent
 
 agent_types = {
     "Fixed": {
@@ -35,6 +35,11 @@ agent_types = {
     "Deep": {
         "DQNAgent": DQNAgent,
         "REINFORCEAgent": REINFORCEAgent,
-        "ActorCriticAgent": ActorCriticAgent
+        "ActorCriticAgent": ActorCriticAgent,
+        'TOMAC':TOMActorCriticAgent,
+        'SACAgent': SoftActorCriticAgent,
+        'A2CAgent': A2CAgent,  # Add ACER agent
+        'PPOAgent': PPOAgent,     # Add PPO agent
+        'ACERAgent': ACERAgent
     }
 }

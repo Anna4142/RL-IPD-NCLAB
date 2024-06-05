@@ -108,7 +108,7 @@ class ChoiceCountMetric(BaseMetric):
 
     def save_results(self, experiment_id, filename, experiment_number):
         # Directory for saving results
-        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        directory = experiment_id
         os.makedirs(directory, exist_ok=True)
 
         # Full file path for saving the choices
@@ -146,7 +146,7 @@ class ChoicePercentageMetric(BaseMetric):
 
     def save_results(self, experiment_id, filename, experiment_number):
         # Ensure directory structure and filename as per BaseMetric structure
-        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        directory = experiment_id
         os.makedirs(directory, exist_ok=True)
 
         # Save metrics in JSON format
@@ -183,7 +183,7 @@ class ChoicePercentageMetric(BaseMetric):
         plt.xticks(rotation=45)  # Rotate labels for better visibility
 
         histogram_filepath = os.path.join(directory, filename.replace('.json', '_histogram.png'))
-        plt.savefig(histogram_filepath)
+        #plt.savefig(histogram_filepath)
         plt.close()
         print(f"Histogram saved to {histogram_filepath}")
 
@@ -191,8 +191,7 @@ class ChoicePercentageMetric(BaseMetric):
         # Convert numeric key tuple to string format CC, CD, DC, DD
         action_map = {0: 'C', 1: 'D'}
         return action_map[key[0]] + action_map[key[1]]
-import json
-import os
+
 
 class ForcedActionsMetric(BaseMetric):
     def __init__(self, data_buffer):
@@ -200,40 +199,16 @@ class ForcedActionsMetric(BaseMetric):
         self.reset()
 
     def update(self, action2, mouse_hist_action):
-        self.agent_actions.append(action2)
-        self.forced_actions.append(mouse_hist_action)
-        if action2 == mouse_hist_action:
-            self.similar_actions += 1
-        self.total_actions += 1
-
-        similarity_percentage = (self.similar_actions / self.total_actions) * 100 if self.total_actions > 0 else 0
-        self.similarity_percentages.append(similarity_percentage)
-
-    def get_metrics(self):
-        return {
-            "agent_actions": self.agent_actions,
-            "forced_actions": self.forced_actions,
-            "similarity_percentages": self.similarity_percentages
-        }
-
-    def reset(self):
-        self.agent_actions = []
-        self.forced_actions = []
-        self.similar_actions = 0
-        self.total_actions = 0
-        self.similarity_percentages = []
-
-class ForcedActionsMetric(BaseMetric):
-    def __init__(self, data_buffer):
-        super().__init__(data_buffer)
-        self.reset()
-
-    def update(self, action2, mouse_hist_action):
+        # Debug prints to trace values
+        print(f"Updating with action2: {action2}, mouse_hist_action: {mouse_hist_action}")
+        if action2 is None or mouse_hist_action is None:
+            print("Warning: One of the inputs to update is None.")
         self.agent_actions.append(action2)
         self.forced_actions.append(mouse_hist_action)
         self.calculate_similarity_score()
 
     def get_metrics(self):
+        print(" get metrics forced_actions", self.forced_actions)
         return {
             "agent_actions": self.agent_actions,
             "forced_actions": self.forced_actions,
@@ -250,7 +225,7 @@ class ForcedActionsMetric(BaseMetric):
         self.iteration_count = 0
 
     def save_results(self, experiment_id, filename, experiment_number):
-        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        directory = experiment_id
         os.makedirs(directory, exist_ok=True)
         filepath = os.path.join(directory, filename)
         metrics = self.get_metrics()
@@ -267,9 +242,16 @@ class ForcedActionsMetric(BaseMetric):
         self.plot_running_average(running_average_plot_filepath)
 
     def plot_trajectory_comparison(self, filepath):
+        if not self.forced_actions or not self.agent_actions:
+            print("Error: Empty forced_actions or agent_actions lists.")
+            return
+
+        forced_actions_array = np.asarray(self.forced_actions)
+        agent_actions_array = np.asarray(self.agent_actions)
+
         plt.figure(figsize=(10, 6))
-        plt.plot(self.forced_actions, label='Forced Actions')
-        plt.plot(self.agent_actions, label='Agent Actions')
+        plt.plot(forced_actions_array, label='Forced Actions')
+        plt.plot(agent_actions_array, label='Agent Actions')
         plt.xlabel('Time Step')
         plt.ylabel('Action')
         plt.title('Trajectory Comparison')
@@ -288,8 +270,14 @@ class ForcedActionsMetric(BaseMetric):
             self.running_averages.append(running_average)
 
     def plot_running_average(self, filepath):
+        if not self.running_averages:
+            print("Error: Empty running_averages list.")
+            return
+
+        running_averages_array = np.asarray(self.running_averages)
+
         plt.figure(figsize=(10, 6))
-        plt.plot(self.running_averages)
+        plt.plot(running_averages_array)
         plt.xlabel('Iteration')
         plt.ylabel('Running Average of Similarity Score')
         plt.title('Running Average of Similarity Score vs Iterations')

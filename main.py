@@ -6,7 +6,7 @@ from agents.LearningAgents.Algorithms.VanillaAgents.SingleAgentVanilla.VanillaVa
 
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import DQNAgent
 from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import REINFORCEAgent
-from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import ActorCriticAgent
+from agents.LearningAgents.Algorithms.DLBased.DLAgents.Generic.GenericNNAgents import ActorCriticAgent,TOMActorCriticAgent
 import random
 from agents.LearningAgents.Algorithms.VanillaAgents.MultiAgentVanila import NASHQ
 from Evaluation.Visualization import MetricsVisualizer
@@ -17,7 +17,8 @@ import os
 import os
 from RunConfig import RunConfig
 import json
-
+import torch
+import numpy as np
 def create_agent(env, agent_type, agent_name, use_spiking_nn=False, load_saved_weights=False, base_directory=None,
                  experiment_id=None, hidden_layers=None, learning_rate=0.01, gamma=0.99, mouse_hist=None, use_mouse_hist=False):
     """
@@ -78,10 +79,11 @@ save_directory="weights"
 experiment_id = f"experiment_{agent_name1}_{agent_name2}"
 """""
 config = RunConfig()
-
+torch.autograd.set_detect_anomaly(True)
 # Setup environment
 environment_name = config.get_environment_name()
 env = CustomEnv(environment_name)
+torch.autograd.set_detect_anomaly(True)
 
 # Retrieve agent configurations and experiment details
 agent_type1, agent_name1, agent_params1 = config.get_agent_details('agent1')
@@ -92,20 +94,20 @@ with open('Mouse_choices/converted_data_1774.json', 'r') as file:
 
         mouse_hist_agent2 = json.load(file)
 
-use_mouse_hist=True
-print("mouse hist",mouse_hist_agent2)
+use_mouse_hist = config.use_forced_actions()  # Get the use_forced_actions parameter
+#print("mouse hist",mouse_hist_agent2)
 # Construct the experiment ID and prepare for managing weights
 experiment_id = f"experiment_{agent_name1}_{agent_name2}"
 weights_dir = os.path.join(save_directory, experiment_id)
 load_weights_flag = False
 use_predefined_weights=False
 # If using predefined weights, adjust the experiment ID or weights directory as necessary
-if use_predefined_weights:
+if use_predefined_weights:##old weights
     experiment_id += "_predefined"
     weights_dir = os.path.join(save_directory, experiment_id)
     load_weights_flag = True
 
-if use_mouse_hist:
+if use_mouse_hist:##forced actions
     experiment_id += "_usingforcedactions"
     weights_dir = os.path.join(save_directory, experiment_id)
     load_weights_flag = False
@@ -164,19 +166,33 @@ visualizer = MetricsVisualizer(data_buffer)
 action1=0
 action2=0
 mouse_hist_idx = 0
+next_state = [np.zeros(env.state_size, dtype=float), np.zeros(env.state_size, dtype=float)]
+
 for _ in range(env.rounds):
+    if isinstance(agent1, TOMActorCriticAgent):
+        # Check if agent2 is of type "Fixed"
+        state_others = state[1] if agent_type2 != "Fixed" else next_state[1]
+        action1 = agent1.decide_action(state[0], state_others)
+    else:
+        action1 = agent1.decide_action(state[0])  # Non-TOMAC agent uses only its own state
 
-
+        # Decision-making for agent2
+    if isinstance(agent2, TOMActorCriticAgent):
+        # Check if agent1 is of type "Fixed"
+        state_others = state[0] if agent_type1 != "Fixed" else next_state[0]
+        action2 = agent2.decide_action(state[1], state_others)
+    else:
+        action2 = agent2.decide_action(state[1])  # Non-TOMAC agent
     # Agents decide their actions based on their respective states
-    action1 = agent1.decide_action(state[0])
-    action2 = agent2.decide_action(state[1])
+
     print("action 1",action1)
     print("action 2",action2)
     # Environment steps forward based on the selected actions
     next_state, rewards, done, info = env.step((action1, action2), agent1, agent2)
     print("next state 1", next_state[0])
     print("next state 2",next_state[1])
-    state = next_state
+    next_state1=next_state
+    state = next_state1
 
 
 
@@ -185,12 +201,30 @@ for _ in range(env.rounds):
     if isinstance(agent2, DQNAgent):
         agent2.store_transition(state[1], action1, action2, next_state[1], rewards[1], rewards[1])
 
-    # Agents learn from the transition
-    if hasattr(agent1, 'learn'):
-        agent1.learn(state[0], action1, rewards[0], next_state[0], done)
-    if hasattr(agent2, 'learn'):
-        agent2.learn(state[1], action2, rewards[1], next_state[1], done)
+    if isinstance(agent1, TOMActorCriticAgent):
+            # Further check if agent2 is of type "Fixed"
+            if agent_type2=="Fixed":  # This should be a class check, not a string comparison
+                # Use the last state of agent2 as state_others for agent1
+                agent1.learn(state[0], next_state[1], action1, rewards[0], next_state[0], state[1], done)
+            else:
+                # Normal processing if agent2 is not "Fixed"
+                agent1.learn(state[0], state[1], action1, rewards[0], next_state[0], next_state[1], done)
+    elif hasattr(agent1, 'learn'):
+            # Standard learning process for non-TOMAC agents
+            agent1.learn(state[0], action1, rewards[0], next_state[0], done)
 
+        # Learning for agent2, checking if it is TOMAC
+    if isinstance(agent2, TOMActorCriticAgent):
+        # Further check if agent1 is of type "Fixed"
+        if agent_type1== "Fixed":
+            # Use the last state of agent1 as state_others for agent2
+            agent2.learn(state[1], next_state[0], action2, rewards[1], next_state[1], state[0], done)
+        else:
+            # Normal processing if agent1 is not "Fixed"
+            agent2.learn(state[1], state[0], action2, rewards[1], next_state[1], next_state[0], done)
+    elif hasattr(agent2, 'learn'):
+        # Standard learning process for non-TOMAC agents
+        agent2.learn(state[1], action2, rewards[1], next_state[1], done)
     # Update visualization and render environment
     visualizer.update_metrics(rewards[0], rewards[1], action1, action2,mouse_hist_agent2[mouse_hist_idx])
     position=(action1,action2)
