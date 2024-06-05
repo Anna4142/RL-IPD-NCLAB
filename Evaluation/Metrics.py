@@ -1,9 +1,12 @@
 from Evaluation.BaseMetric import BaseMetric
 import csv
 import csv
+import os
 from os.path import exists
-
-
+from os.path import exists, dirname, join
+import matplotlib.pyplot as plt
+import json
+import numpy as np
 class CumulativeRewardMetric(BaseMetric):
     def __init__(self, data_buffer):
         super().__init__(data_buffer)
@@ -86,13 +89,48 @@ class CooperationRateMetric(BaseMetric):
 
 
         super().save_results(experiment_id, expnum,filename)
+class ChoiceCountMetric(BaseMetric):
+    def __init__(self, data_buffer):
+        super().__init__(data_buffer)
+        self.choices = []  # List to store each choice pair
+
+    def update(self, action1, action2):
+        # Log the choices for each iteration
+        self.choices.append((action1, action2))
+
+    def get_metrics(self):
+        # Return the list of all choice pairs
+        return self.choices
+
+    def reset(self):
+        # Reset the list of choices
+        self.choices = []
+
+    def save_results(self, experiment_id, filename, experiment_number):
+        # Directory for saving results
+        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        os.makedirs(directory, exist_ok=True)
+
+        # Full file path for saving the choices
+        filepath = os.path.join(directory, filename)
+
+        # Convert each tuple in the list to a string that indicates choice labels
+        choice_labels = [(self._action_label(a), self._action_label(b)) for a, b in self.choices]
+
+        # Save the choices as JSON
+        with open(filepath, 'w') as file:
+            json.dump(choice_labels, file)
+        print(f"Choices saved to {filepath}")
+
+    def _action_label(self, action):
+        # Helper method to convert action numbers to labels
+        return 'C' if action == 0 else 'D'
 class ChoicePercentageMetric(BaseMetric):
     def __init__(self, data_buffer):
         super().__init__(data_buffer)
         self.reset()
 
     def update(self, action1, action2):
-        # Update counts based on actions
         key = (action1, action2)
         self.action_counts[key] = self.action_counts.get(key, 0) + 1
 
@@ -100,25 +138,161 @@ class ChoicePercentageMetric(BaseMetric):
         # Calculate the percentage of each choice
         total_actions = sum(self.action_counts.values())
         if total_actions == 0:
-            return {k: 0 for k in self.action_counts.keys()}
-        return {k: (v / total_actions) * 100 for k, v in self.action_counts.items()}
+            return {self._format_key(k): 0 for k in self.action_counts.keys()}
+        return {self._format_key(k): (v / total_actions) * 100 for k, v in self.action_counts.items()}
 
     def reset(self):
         self.action_counts = {}
 
-    def save_results(self, experiment_id,   filename,expnum):
-        metrics = self.get_metrics()
-        # Prepare row data
-        row_data = [experiment_id] + [metrics.get((i, j), 0) for i in range(2) for j in range(2)]
+    def save_results(self, experiment_id, filename, experiment_number):
+        # Ensure directory structure and filename as per BaseMetric structure
+        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        os.makedirs(directory, exist_ok=True)
 
-        file_exists = exists(filename)
-        with open(filename, mode='a', newline='') as file:
+        # Save metrics in JSON format
+        json_filepath = os.path.join(directory, filename)
+        data_to_save = self.get_metrics()
+        with open(json_filepath, 'w') as file:
+            json.dump(data_to_save, file)
+        print(f"Saved JSON to {json_filepath}")
+
+        # Save metrics in CSV format
+        csv_filepath = os.path.join(directory, filename.replace('.json', '.csv'))
+        file_exists = os.path.exists(csv_filepath)
+        with open(csv_filepath, 'a', newline='') as file:
             writer = csv.writer(file)
             if not file_exists:
-                # Write headers if file does not exist
-                headers = ['ExperimentID',   'CC', 'CD', 'DC', 'DD']
+                headers = ['ExperimentID', 'ExperimentNum'] + list(data_to_save.keys())
                 writer.writerow(headers)
+            row_data = [experiment_id, experiment_number] + list(data_to_save.values())
             writer.writerow(row_data)
+        print(f"Saved CSV to {csv_filepath}")
 
-        #super().save_results(experiment_id,filename,expnum)
+        # Generate and save histogram
+        self.save_histogram(data_to_save, directory, filename)
 
+    def save_histogram(self, metrics, directory, filename):
+        labels = list(metrics.keys())
+        values = list(metrics.values())
+
+        plt.figure(figsize=(10, 6))
+        plt.bar(labels, values, color='blue')
+        plt.xlabel('Action Combinations')
+        plt.ylabel('Percentage (%)')
+        plt.title('Choice Distribution Histogram')
+        plt.xticks(rotation=45)  # Rotate labels for better visibility
+
+        histogram_filepath = os.path.join(directory, filename.replace('.json', '_histogram.png'))
+        plt.savefig(histogram_filepath)
+        plt.close()
+        print(f"Histogram saved to {histogram_filepath}")
+
+    def _format_key(self, key):
+        # Convert numeric key tuple to string format CC, CD, DC, DD
+        action_map = {0: 'C', 1: 'D'}
+        return action_map[key[0]] + action_map[key[1]]
+import json
+import os
+
+class ForcedActionsMetric(BaseMetric):
+    def __init__(self, data_buffer):
+        super().__init__(data_buffer)
+        self.reset()
+
+    def update(self, action2, mouse_hist_action):
+        self.agent_actions.append(action2)
+        self.forced_actions.append(mouse_hist_action)
+        if action2 == mouse_hist_action:
+            self.similar_actions += 1
+        self.total_actions += 1
+
+        similarity_percentage = (self.similar_actions / self.total_actions) * 100 if self.total_actions > 0 else 0
+        self.similarity_percentages.append(similarity_percentage)
+
+    def get_metrics(self):
+        return {
+            "agent_actions": self.agent_actions,
+            "forced_actions": self.forced_actions,
+            "similarity_percentages": self.similarity_percentages
+        }
+
+    def reset(self):
+        self.agent_actions = []
+        self.forced_actions = []
+        self.similar_actions = 0
+        self.total_actions = 0
+        self.similarity_percentages = []
+
+class ForcedActionsMetric(BaseMetric):
+    def __init__(self, data_buffer):
+        super().__init__(data_buffer)
+        self.reset()
+
+    def update(self, action2, mouse_hist_action):
+        self.agent_actions.append(action2)
+        self.forced_actions.append(mouse_hist_action)
+        self.calculate_similarity_score()
+
+    def get_metrics(self):
+        return {
+            "agent_actions": self.agent_actions,
+            "forced_actions": self.forced_actions,
+            "similarity_scores": self.similarity_scores,
+            "running_averages": self.running_averages
+        }
+
+    def reset(self):
+        self.agent_actions = []
+        self.forced_actions = []
+        self.similarity_scores = []
+        self.running_averages = []
+        self.cumulative_sum = 0
+        self.iteration_count = 0
+
+    def save_results(self, experiment_id, filename, experiment_number):
+        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
+        os.makedirs(directory, exist_ok=True)
+        filepath = os.path.join(directory, filename)
+        metrics = self.get_metrics()
+        with open(filepath, 'w') as file:
+            json.dump(metrics, file)
+        print(f"Forced actions saved to {filepath}")
+
+        # Save the trajectory comparison plot
+        trajectory_plot_filepath = os.path.join(directory, 'trajectory_comparison.png')
+        self.plot_trajectory_comparison(trajectory_plot_filepath)
+
+        # Save the running average plot
+        running_average_plot_filepath = os.path.join(directory, 'running_average.png')
+        self.plot_running_average(running_average_plot_filepath)
+
+    def plot_trajectory_comparison(self, filepath):
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.forced_actions, label='Forced Actions')
+        plt.plot(self.agent_actions, label='Agent Actions')
+        plt.xlabel('Time Step')
+        plt.ylabel('Action')
+        plt.title('Trajectory Comparison')
+        plt.legend()
+        plt.savefig(filepath)
+        plt.close()
+        print(f"Trajectory comparison plot saved to {filepath}")
+
+    def calculate_similarity_score(self):
+        if len(self.forced_actions) > 0 and len(self.agent_actions) > 0:
+            score = int(self.forced_actions[-1] == self.agent_actions[-1])
+            self.similarity_scores.append(score)
+            self.cumulative_sum += score
+            self.iteration_count += 1
+            running_average = self.cumulative_sum / self.iteration_count
+            self.running_averages.append(running_average)
+
+    def plot_running_average(self, filepath):
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.running_averages)
+        plt.xlabel('Iteration')
+        plt.ylabel('Running Average of Similarity Score')
+        plt.title('Running Average of Similarity Score vs Iterations')
+        plt.savefig(filepath)
+        plt.close()
+        print(f"Running average plot saved to {filepath}")
