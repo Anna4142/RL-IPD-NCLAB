@@ -69,11 +69,11 @@ deep_agents = [
 game_config = GameConfig(T=4, S=0, P=1, R=3)
 env_config = game_config.get_game_config(environment_name)
 #memory_length = env_config['memory'] if env_config else 1
-memory_length=2
+memory_length=1
 # Loop through each deep agent to run experiments
 for agent_name in deep_agents:
     # Create base save directory based on agent names and memory length
-    base_save_directory = f'Episodes/Not_Clamped/MEMORY_LENGTH_{memory_length}_F/{agent_name}_{agent_name}/'
+    base_save_directory = f'Episodes/Clamped/DD_LowVar/MEMORY_LENGTH_{memory_length}_F/{agent_name}_{agent_name}/'
     os.makedirs(base_save_directory, exist_ok=True)
 
     # Use predefined weights and historical data configurations
@@ -90,13 +90,15 @@ for agent_name in deep_agents:
     human_hist_data_p2 = None
 
     if use_human_hist:
-        human_hist_path_p1 = os.path.join('HUMAN_SPLIT/CC_highest_variability/player_1_actions.json')
-        human_hist_path_p2 = os.path.join('HUMAN_SPLIT/CC_highest_variability/player_2_actions.json')
+
+        human_hist_path_p1 = os.path.join('HUMAN_SPLIT/DD_lowest_nonzero_variability/player_1_actions.json')
+        human_hist_path_p2 = os.path.join('HUMAN_SPLIT/DD_lowest_nonzero_variability/player_2_actions.json')
 
         with open(human_hist_path_p1, 'r') as file:
             human_hist_data_p1 = json.load(file)
         with open(human_hist_path_p2, 'r') as file:
             human_hist_data_p2 = json.load(file)
+        print("human hist 1", human_hist_data_p1 )
 
     experiment_manager = ExperimentManager()
     data_buffer = DataBuffer()
@@ -104,6 +106,7 @@ for agent_name in deep_agents:
 
     # Add outer loop for multiple runs
     num_runs = 20
+
     for run in range(num_runs):
         set_seed(42 + run)
         print(f"Starting Run {run + 1}/{num_runs} for agent {agent_name}")
@@ -111,7 +114,7 @@ for agent_name in deep_agents:
         # Create a new directory for this run
         run_directory = os.path.join(base_save_directory, f"RUN_{run + 1}")
         os.makedirs(run_directory, exist_ok=True)
-
+        human_hist_idx = 0  # Initialize this at the start of each experiment
         for hidden_layers in hidden_layers_options:
             for learning_rate in learning_rates:
                 for gamma in gammas:
@@ -152,17 +155,62 @@ for agent_name in deep_agents:
 
                     # Simulation loop
                     for _ in range(env.rounds):
+                        if human_hist_idx >= len(human_hist_data_p1):
+                            human_hist_idx = 0  # Reset if we've gone through all data
+
+                        # Determine the forced action for agent1
+                        forced_action1 = None
+                        if use_human_hist and human_hist_idx < len(human_hist_data_p1):
+                            forced_action1 = human_hist_data_p1[human_hist_idx]
+                        elif use_mouse_hist and human_hist_idx < len(mouse_hist_agent2):
+                            forced_action1 = mouse_hist_agent2[human_hist_idx]
+
+                        # Determine the forced action for agent2
+                        forced_action2 = None
+                        if use_human_hist and human_hist_idx < len(human_hist_data_p2):
+                            forced_action2 = human_hist_data_p2[human_hist_idx]
+                        elif use_mouse_hist and human_hist_idx < len(mouse_hist_agent2):
+                            forced_action2 = mouse_hist_agent2[human_hist_idx]
+
+                        # Agent 1 decision
                         if isinstance(agent1, TOMActorCriticAgent):
                             state_others = state[1]
-                            action1 = agent1.decide_action(state[0], state_others)
+                            action1 = agent1.decide_action(state[0], state_others, forced_action1)
+                        elif isinstance(agent1, DQNAgent):
+                            action1 = agent1.decide_action([forced_action1] if forced_action1 is not None else state[0])
                         else:
                             action1 = agent1.decide_action(state[0])
 
+                        # Agent 2 decision
                         if isinstance(agent2, TOMActorCriticAgent):
                             state_others = state[0]
-                            action2 = agent2.decide_action(state[1], state_others)
+                            action2 = agent2.decide_action(state[1], state_others, forced_action2)
+                        elif isinstance(agent2, DQNAgent):
+                            action2 = agent2.decide_action([forced_action2] if forced_action2 is not None else state[1])
                         else:
                             action2 = agent2.decide_action(state[1])
+
+                        print(f"Forced action 1: {forced_action1}, Chosen action 1: {action1}")
+                        print(f"Forced action 2: {forced_action2}, Chosen action 2: {action2}")
+
+                        # Agent 1 decision
+                        if isinstance(agent1, TOMActorCriticAgent):
+                            state_others = state[1]
+                            action1 = agent1.decide_action(state[0], state_others, forced_action1)
+                        else:
+                            action1 = agent1.decide_action(state[0])
+
+                        # Agent 2 decision
+                        if isinstance(agent2, TOMActorCriticAgent):
+                            state_others = state[0]
+                            action2 = agent2.decide_action(state[1], state_others, forced_action2)
+                        else:
+                            action2 = agent2.decide_action(state[1])
+
+                        print(f"Forced action 1: {forced_action1}, Chosen action 1: {action1}")
+                        print(f"Forced action 2: {forced_action2}, Chosen action 2: {action2}")
+
+                        human_hist_idx += 1
 
                         next_state, rewards, done, info = env.step((action1, action2), agent1, agent2)
                         state = next_state
@@ -172,19 +220,7 @@ for agent_name in deep_agents:
                         if isinstance(agent2, DQNAgent):
                             agent2.store_transition(state[1], action1, action2, next_state[1], rewards[1], rewards[1])
 
-                        if isinstance(agent1, TOMActorCriticAgent):
-                            state_others = state[1]
-                            agent1.learn(state[0], state_others, action1, rewards[0], next_state[0], state[1], done)
-                        elif hasattr(agent1, 'learn'):
-                            agent1.learn(state[0], action1, rewards[0], next_state[0], done)
-
-                        if isinstance(agent2, TOMActorCriticAgent):
-                            state_others = state[0]
-                            agent2.learn(state[1], state_others, action2, rewards[1], next_state[1], state[0], done)
-                        elif hasattr(agent2, 'learn'):
-                            agent2.learn(state[1], action2, rewards[1], next_state[1], done)
-
-                        visualizer.update_metrics(rewards[0], rewards[1], action1, action2, None)
+                        visualizer.update_metrics(rewards[0], rewards[1], action1, action2, forced_action1)
 
                     visualizer.save_all_results_and_plots(experiment_path, experiment_id)
 

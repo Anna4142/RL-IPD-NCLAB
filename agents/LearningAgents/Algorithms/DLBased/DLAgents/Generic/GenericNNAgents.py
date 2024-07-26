@@ -375,30 +375,34 @@ class TOMActorCriticAgent(GenericNNAgent):
             self.optimizer_other_critic = optim.Adam(self.other_critic.parameters(), lr=learning_rate)
             self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=learning_rate)
 
-    def decide_action(self, state, state_others, human_decision=None):
-            state_tensor = torch.tensor([state], dtype=torch.float32)
-            state_others_tensor = torch.tensor([state_others], dtype=torch.float32)
-            combined_state = torch.cat([state_tensor, state_others_tensor], dim=-1)
-            logits = self.actor(combined_state)
-            action_probs = F.softmax(logits, dim=-1)
-            distribution = torch.distributions.Categorical(action_probs)
+    def decide_action(self, state, state_others, human_action):
+        state_tensor = torch.tensor([state], dtype=torch.float32)
+        state_others_tensor = torch.tensor([state_others], dtype=torch.float32)
+        combined_state = torch.cat([state_tensor, state_others_tensor], dim=-1)
 
-            if human_decision is not None:
-                action = human_decision
-            elif self.use_human_hist and self.current_step < len(self.human_hist):
-                action = self.human_hist[self.current_step]
-            elif self.use_mouse_hist and self.current_step < len(self.mouse_hist):
-                action = self.mouse_hist[self.current_step]
-            else:
-                action = distribution.sample().item()
+        logits = self.actor(combined_state)
+        action_probs = F.softmax(logits, dim=-1)
 
-            self.forced_actions.append(action)
-            self.current_log_prob = distribution.log_prob(torch.tensor([action]))
-            self.log_probs.append(self.current_log_prob)
-            self.expected_actions.append(action)
-            self.current_step += 1
+        # If human action is provided, bias the probabilities
+        if human_action is not None:
+            # Store the forced action
+            self.forced_actions.append(human_action)
+            # Increase the probability of the human action
+            action_probs[0, human_action] *= 1.5  # You can adjust this factor
+            action_probs = action_probs / action_probs.sum()  # Renormalize
+        else:
+            # If no human action, store None or a placeholder
+            self.forced_actions.append(None)
 
-            return action
+        distribution = torch.distributions.Categorical(action_probs)
+        action = distribution.sample().item()
+
+        self.current_log_prob = distribution.log_prob(torch.tensor([action]))
+        self.log_probs.append(self.current_log_prob)
+        self.expected_actions.append(action)
+        self.current_step += 1
+
+        return action
     def one_hot_encode_action(self, action_index, action_space_size):
         """
         Encodes an action index into a one-hot vector.
@@ -702,13 +706,11 @@ class A2CAgent(GenericNNAgent):
             action_probs = F.softmax(self.actor(state), dim=-1)
             value = self.critic(state)
             dist = Categorical(action_probs)
-
-            if (self.use_human and self.current_step < len(self.human_actions)) or (
-                    self.use_mouse_hist and self.current_step < len(self.mouse_hist)):
-                if self.use_human and self.current_step < len(self.human_actions):
-                    action = torch.tensor([self.human_actions[self.current_step]])
-                else:
-                    action = torch.tensor([self.mouse_hist[self.current_step]])
+            if self.use_human and self.current_step < len(self.human_actions):
+                action = torch.tensor([self.human_actions[self.current_step]])
+                self.forced_actions.append(action.item())
+            elif self.use_mouse_hist and self.current_step < len(self.mouse_hist):
+                action = torch.tensor([self.mouse_hist[self.current_step]])
                 self.forced_actions.append(action.item())
             else:
                 action = dist.sample()

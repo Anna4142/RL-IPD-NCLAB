@@ -34,7 +34,7 @@ class RunConfig:
                 "save_directory": "weights",
                 "use_predefined_weights": False,
                 "use_forced_actions": False,
-                "use_human_hist": False  # Centralized human history setting
+                "use_human_hist": True  # Centralized human history setting
             }
         }
 

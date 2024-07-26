@@ -235,7 +235,7 @@ class ForcedActionsMetric(BaseMetric):
 
         # Save the trajectory comparison plot
         trajectory_plot_filepath = os.path.join(directory, 'trajectory_comparison.png')
-        self.plot_trajectory_comparison(trajectory_plot_filepath)
+        #self.plot_trajectory_comparison(trajectory_plot_filepath)
 
         # Save the running average plot
         running_average_plot_filepath = os.path.join(directory, 'running_average.png')

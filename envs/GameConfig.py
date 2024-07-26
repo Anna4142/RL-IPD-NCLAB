@@ -8,8 +8,8 @@ class GameConfig:
                     [(T, S), (P, P)]
                 ],
                 "algorithm_type": "SINGLE AGENT",
-                "memory": 2,  # Number of past rounds to remember
-                "history_length": 2,  # Number of past actions to keep in history
+                "memory": 1,  # Number of past rounds to remember
+                "history_length": 1,  # Number of past actions to keep in history
                 "obs_type": "both"  # Type of observation data to include-can be self other or both
             },
             "stag_hunt": {
