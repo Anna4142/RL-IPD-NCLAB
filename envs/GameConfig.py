@@ -2,7 +2,7 @@ class GameConfig:
     def __init__(self, T, S, P, R):
         self.games = {
             "prisoners_dilemma": {
-                "rounds": 100,
+                "rounds": 5000,
                 "payout_matrix": [
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
