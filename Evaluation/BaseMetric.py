@@ -40,12 +40,11 @@ class BaseMetric:
 
     def save_results(self, experiment_id, filename, experiment_number):
         # Directory for saving results
-        directory = os.path.join("Episodes", experiment_id, f"{experiment_number}")
-        os.makedirs(directory, exist_ok=True)
+        directory =experiment_id
 
         # Path where the metric data will be saved
         data_filepath = os.path.join(directory, filename)
-
+        os.makedirs(directory, exist_ok=True)
         # Assuming the metric data can be serialized to JSON
         data_to_save = self.get_metrics()
 

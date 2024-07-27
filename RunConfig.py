@@ -4,33 +4,56 @@ class RunConfig:
 
     def load_config(self):
         return {
-            "environment": {
-                "name": "prisoners_dilemma"
-            },
+            "environment": {"name": "prisoners_dilemma"},
             "agents": {
                 "agent1": {
-                    "type": "Fixed",
-                    "name": "TitForTat",
-                    "parameters": {}
-                },
-                "agent2": {
                     "type": "Deep",
-                    "name": "DQNAgent",
+                    "name": "TOMAC",
                     "parameters": {
                         "use_spiking_nn": False,
                         "hidden_layers": [256, 256],
                         "learning_rate": 0.001,
                         "gamma": 0.99,
+                        "use_mouse_hist": False,
+                        "use_human_hist": True
+                    }},
+                "agent2": {
+                    "type": "Deep",
+                    "name": "TOMAC",
+                    "parameters": {
+                        "use_spiking_nn": False,
+                        "hidden_layers": [256, 256],
+                        "learning_rate": 0.001,
+                        "gamma": 0.99,
+
+                        "use_mouse_hist": False,
+                        "use_human_hist": True
+
                         "use_mouse_hist": True  # Default to true or based on specific setups
+
                     }
                 }
             },
             "experiment": {
                 "save_directory": "weights",
                 "use_predefined_weights": False,
+
+                "use_forced_actions": False,
+                "use_human_hist": False  # Centralized human history setting
+
                 "use_forced_actions": True  # Added parameter
+
             }
         }
+
+    # Add method to get human history usage status
+    def use_human_hist(self):
+        return self.config['experiment'].get('use_human_hist', False)
+
+    # Additional getter for the new parameter
+    def use_human_hist(self):
+        return self.config['experiment'].get('use_human_hist', False)
+
 
     def get_environment_name(self):
         return self.config['environment'].get('name', 'default_environment')

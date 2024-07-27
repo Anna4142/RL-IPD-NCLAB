@@ -17,7 +17,7 @@ S = 0
 class CustomEnv(gym.Env):
     def __init__(self, game_name):
         # Initialize game configurations
-        game_config = GameConfig(T=5, S=0, P=1, R=3).get_game_config(game_name)
+        game_config = GameConfig(T=4, S=0, P=1, R=3).get_game_config(game_name)
         if not game_config:
             raise ValueError(f"Game '{game_name}' configuration not found.")
 

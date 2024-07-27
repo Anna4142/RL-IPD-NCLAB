@@ -2,18 +2,18 @@ class GameConfig:
     def __init__(self, T, S, P, R):
         self.games = {
             "prisoners_dilemma": {
-                "rounds": 100,
+                "rounds": 5000,
                 "payout_matrix": [
                     [(R, R), (S, T)],
                     [(T, S), (P, P)]
                 ],
                 "algorithm_type": "SINGLE AGENT",
-                "memory": 3,  # Number of past rounds to remember
-                "history_length": 3,  # Number of past actions to keep in history
+                "memory": 2,  # Number of past rounds to remember
+                "history_length": 2,  # Number of past actions to keep in history
                 "obs_type": "both"  # Type of observation data to include-can be self other or both
             },
             "stag_hunt": {
-                "rounds": 10,
+                "rounds": 1000,
                 "payout_matrix": [
                     [(R, R), (S, P)],
                     [(P, S), (T, T)]
@@ -24,7 +24,7 @@ class GameConfig:
                 "obs_type": "self"
             },
             "chicken_game": {
-                "rounds": 10,
+                "rounds": 1000,
                 "payout_matrix": [
                     [(T, S), (P, P)],
                     [(S, T), (R, R)]
@@ -33,8 +33,18 @@ class GameConfig:
                 "memory": 2,
                 "history_length": 2,
                 "obs_type": "other"
+            },
+            "matching_pennies": {
+                "rounds": 1000,
+                "payout_matrix": [
+                    [(T, S), (S, T)],
+                    [(S, T), (T, S)]
+                ],
+                "algorithm_type": "SINGLE AGENT",
+                "memory": 1,  # Number of past rounds to remember
+                "history_length": 1,  # Number of past actions to keep in history
+                "obs_type": "both"  # Type of observation data to include-can be self, other, or both
             }
-            # Add more games as needed
         }
 
     def add_game(self, game_name, rounds, payout_matrix, algorithm_type, memory, history_length, obs_type):
