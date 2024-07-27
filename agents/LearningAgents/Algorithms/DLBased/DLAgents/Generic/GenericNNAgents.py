@@ -78,12 +78,22 @@ class DQNAgent:
         return action
 
     def learn(self, state, action, reward, next_state, done):
+
         # Store the new experience in the replay buffer
         self.store_transition(state, action, action, next_state, reward, done)
 
         # Only start learning when we have enough samples for a batch
         if len(self.replay_buffer) < self.batch_size:
             return
+
+        state = np.array(state)  # Convert list of numpy arrays to a single numpy array
+        print(state)
+        state = torch.tensor([state], dtype=torch.float32)
+        action = torch.tensor([action], dtype=torch.long)
+        reward = torch.tensor([reward], dtype=torch.float32)
+        next_state = torch.tensor([next_state], dtype=torch.float32)
+        done = torch.tensor([done], dtype=torch.float32)
+
 
         # Sample a batch from the replay buffer
         batch = self.replay_buffer.sample(self.batch_size)

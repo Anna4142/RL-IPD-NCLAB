@@ -25,16 +25,24 @@ class RunConfig:
                         "hidden_layers": [256, 256],
                         "learning_rate": 0.001,
                         "gamma": 0.99,
+
                         "use_mouse_hist": False,
                         "use_human_hist": True
+
+                        "use_mouse_hist": True  # Default to true or based on specific setups
+
                     }
                 }
             },
             "experiment": {
                 "save_directory": "weights",
                 "use_predefined_weights": False,
+
                 "use_forced_actions": False,
                 "use_human_hist": False  # Centralized human history setting
+
+                "use_forced_actions": True  # Added parameter
+
             }
         }
 

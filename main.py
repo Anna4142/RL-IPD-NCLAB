@@ -95,7 +95,11 @@ with open('Mouse_choices/converted_data_1774.json', 'r') as file:
         mouse_hist_agent2 = json.load(file)
 
 use_mouse_hist = config.use_forced_actions()  # Get the use_forced_actions parameter
+
 #print("mouse hist",mouse_hist_agent2)
+
+print("mouse hist",mouse_hist_agent2)
+
 # Construct the experiment ID and prepare for managing weights
 experiment_id = f"experiment_{agent_name1}_{agent_name2}"
 weights_dir = os.path.join(save_directory, experiment_id)
